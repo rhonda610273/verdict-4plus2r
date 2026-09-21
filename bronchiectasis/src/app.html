@@ -1,0 +1,1395 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="no-referrer">
+<!--__CSP__-->
+<title>支氣管擴張症 · 門診一頁式儀錶板（離線版）</title>
+<style>
+:root{
+  --bg:#0f1117; --surface:#1a1d2e; --surface2:#20243a; --border:#2a2d3e;
+  --text:#e2e8f0; --muted:#94a3b8; --faint:#64748b; --accent:#60a5fa;
+  --green:#4ade80; --yellow:#facc15; --red:#f87171; --orange:#fb923c; --purple:#c4b5fd;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang TC','Microsoft JhengHei',sans-serif;line-height:1.6;font-size:15px}
+button{font:inherit;cursor:pointer;border:1px solid var(--border);background:var(--surface2);color:var(--text);padding:.45rem .9rem;border-radius:7px}
+button:hover{background:#2a2f4a}
+button.primary{background:var(--accent);color:#08101f;border-color:var(--accent);font-weight:700}
+button.danger{border-color:#7f1d1d;color:#fca5a5}
+input,select{font:inherit;background:#10131f;color:var(--text);border:1px solid var(--border);border-radius:6px;padding:.3rem .5rem}
+input[type=checkbox]{width:1.05rem;height:1.05rem;accent-color:var(--accent)}
+a{color:var(--accent)}
+
+.topbar{position:sticky;top:0;z-index:20;display:flex;flex-wrap:wrap;gap:.75rem;align-items:center;
+  padding:.7rem 1.25rem;background:#12151f;border-bottom:1px solid var(--border)}
+.brand{font-weight:800;color:#fff;font-size:1.02rem}
+.spacer{flex:1}
+.pill{display:inline-flex;align-items:center;gap:.4rem;font-size:.74rem;font-weight:700;
+  padding:.24rem .65rem;border-radius:999px;background:#052e1a;color:var(--green);border:1px solid #14532d}
+.pill.warn{background:#3f2d06;color:var(--yellow);border-color:#713f12}
+.wrap{max-width:1180px;margin:0 auto;padding:1.25rem}
+
+.drop{border:2px dashed #39405c;border-radius:14px;padding:2.5rem 1.5rem;text-align:center;background:#151827;transition:.15s}
+.drop.over{border-color:var(--accent);background:#17203a}
+.drop h2{font-size:1.15rem;color:#fff;margin-bottom:.4rem}
+.drop.compact{padding:.75rem 1.1rem;display:flex;align-items:center;gap:1rem;text-align:left}
+.drop.compact h2{font-size:.9rem;margin:0;color:var(--muted);font-weight:600}
+.drop.compact p,.drop.compact .hint{display:none}
+.drop.compact button{margin-left:auto}
+.drop p{color:var(--muted);font-size:.88rem;margin-bottom:1rem}
+.hint{color:var(--faint);font-size:.78rem;margin-top:.9rem;line-height:1.7}
+
+.log{margin-top:1rem;font-size:.82rem;color:var(--muted);background:#12141f;border:1px solid var(--border);
+  border-radius:9px;padding:.75rem 1rem;max-height:190px;overflow:auto;font-variant-numeric:tabular-nums}
+.log div{padding:.1rem 0}
+.log .err{color:var(--red)} .log .ok{color:var(--green)} .log .wr{color:var(--yellow)}
+
+.grid{display:grid;gap:1rem;margin-top:1.25rem}
+.cols3{grid-template-columns:repeat(auto-fit,minmax(265px,1fr))}
+.cols2{grid-template-columns:repeat(auto-fit,minmax(360px,1fr))}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1.1rem 1.2rem}
+.card h3{font-size:.79rem;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin-bottom:.8rem;font-weight:700}
+
+.score{display:flex;align-items:baseline;gap:.55rem}
+.score .n{font-size:2.5rem;font-weight:800;line-height:1;color:#fff}
+.score .d{color:var(--faint);font-size:.95rem}
+.sev{display:inline-block;margin-top:.55rem;padding:.2rem .7rem;border-radius:999px;font-size:.78rem;font-weight:700}
+.sev-mild{background:#052e1a;color:var(--green)}
+.sev-mod{background:#3f2d06;color:var(--yellow)}
+.sev-sev{background:#4c0519;color:#fda4af}
+.sev-na{background:#1e293b;color:var(--faint)}
+.bd{margin-top:.85rem;border-top:1px solid var(--border);padding-top:.6rem;font-size:.8rem}
+.bd .r{display:flex;justify-content:space-between;gap:.5rem;padding:.16rem 0;color:var(--muted)}
+.bd .r b{color:var(--text);font-variant-numeric:tabular-nums}
+.bd .r.zero{opacity:.45}
+
+table{width:100%;border-collapse:collapse;font-size:.86rem}
+th{text-align:left;color:var(--muted);font-weight:600;font-size:.76rem;text-transform:uppercase;
+  letter-spacing:.05em;padding:.4rem .5rem;border-bottom:1px solid var(--border)}
+td{padding:.38rem .5rem;border-bottom:1px solid #22263a;vertical-align:middle}
+tr:last-child td{border-bottom:none}
+.src{font-size:.7rem;color:var(--faint);cursor:help;border-bottom:1px dotted var(--faint)}
+.auto{color:var(--green);font-size:.68rem;font-weight:700}
+.miss{color:var(--orange);font-size:.68rem;font-weight:700}
+.edited{color:var(--purple);font-size:.68rem;font-weight:700}
+.num{width:5.5rem;text-align:right;font-variant-numeric:tabular-nums}
+
+.chip{display:inline-block;padding:.16rem .55rem;border-radius:6px;font-size:.76rem;margin:.12rem .2rem .12rem 0;
+  background:var(--surface2);border:1px solid var(--border)}
+.chip.pa{background:#4c0519;color:#fda4af;border-color:#7f1d1d}
+.chip.ntm{background:#3b0764;color:#d8b4fe;border-color:#6b21a8}
+.chip.other{background:#1e3a5f;color:#93c5fd;border-color:#1d4ed8}
+.chip.neg{background:#052e1a;color:var(--green);border-color:#14532d}
+
+.flag{display:flex;gap:.6rem;padding:.55rem 0;border-bottom:1px solid #22263a;font-size:.85rem}
+.flag:last-child{border-bottom:none}
+.flag .ic{flex-shrink:0;width:1.35rem;text-align:center;font-weight:800}
+.flag.hi .ic{color:var(--red)} .flag.md .ic{color:var(--yellow)} .flag.lo .ic{color:var(--accent)}
+.flag .tx b{color:#fff;display:block}
+.flag .tx span{color:var(--muted);font-size:.79rem}
+
+.prov{font-size:.78rem;max-height:340px;overflow:auto}
+.prov .p{padding:.42rem 0;border-bottom:1px solid #22263a}
+.prov .p b{color:var(--accent)}
+.prov .p code{display:block;color:var(--muted);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+  font-size:.74rem;white-space:pre-wrap;word-break:break-all;margin-top:.15rem}
+.prov .p .loc{color:var(--faint);font-size:.7rem}
+
+.note{font-size:.76rem;color:var(--faint);line-height:1.75;margin-top:.7rem}
+.foot{margin:2rem 0 3rem;padding-top:1.1rem;border-top:1px solid var(--border);font-size:.76rem;color:var(--faint);line-height:1.8}
+svg{display:block;width:100%;height:auto;overflow:visible}
+.empty{color:var(--faint);font-size:.83rem;padding:.6rem 0}
+.mask{cursor:pointer;border-bottom:1px dashed var(--faint)}
+.mt-sm{margin-top:.6rem}
+.mt-md{margin-top:1rem}
+.decline{color:var(--orange)}
+
+@media print{
+  :root{--bg:#fff;--surface:#fff;--surface2:#fff;--border:#c9cfdb;--text:#111;--muted:#444;--faint:#666}
+  body{font-size:10.5px;line-height:1.42}
+  .topbar,.drop,.log,#provCard,.noprint{display:none!important}
+  .wrap{max-width:none;padding:0}
+  .grid{gap:.5rem;margin-top:.5rem}
+  .card{padding:.5rem .6rem;break-inside:avoid;border-radius:6px}
+  .card h3{font-size:.62rem;margin-bottom:.35rem}
+  .score .n{font-size:1.5rem}
+  .cols3{grid-template-columns:repeat(3,1fr)}
+  .cols2{grid-template-columns:repeat(2,1fr)}
+  @page{size:A4 portrait;margin:9mm}
+}
+</style>
+</head>
+<body>
+
+<header class="topbar noprint">
+  <div class="brand">支氣管擴張症 · 門診一頁式儀錶板</div>
+  <span class="pill" id="netPill">● 檢查中…</span>
+  <div class="spacer"></div>
+  <button class="primary" id="btnPick">選擇門診 PDF</button>
+  <button id="btnPrint">列印 / 存成 PDF</button>
+  <button id="btnExport">匯出去識別 JSON</button>
+  <button class="danger" id="btnClear">清除全部</button>
+  <input type="file" id="file" accept="application/pdf,.pdf" multiple hidden>
+</header>
+
+<div class="wrap">
+
+  <section class="drop noprint" id="drop">
+    <h2>把門診紀錄 PDF 拖進來</h2>
+    <p>可一次選多份（不同次門診、肺功能報告、痰培養報告），系統會合併成一份趨勢儀錶板</p>
+    <button class="primary" id="btnPick2">選擇檔案</button>
+    <div class="hint">
+      所有解析都在這個瀏覽器分頁內完成 · 沒有伺服器 · 沒有網路請求 · 沒有任何資料寫入硬碟<br>
+      關閉分頁即完全消失（本頁刻意不使用 localStorage / IndexedDB / Cookie）
+    </div>
+  </section>
+
+  <div class="log noprint" id="log" hidden></div>
+
+  <div id="dash" hidden>
+
+    <div class="grid cols3" id="scoreRow">
+      <div class="card">
+        <h3>BSI · Bronchiectasis Severity Index</h3>
+        <div class="score"><span class="n" id="bsiN">–</span><span class="d">/ 26</span></div>
+        <span class="sev sev-na" id="bsiSev">資料不足</span>
+        <div class="bd" id="bsiBd"></div>
+      </div>
+      <div class="card">
+        <h3>FACED</h3>
+        <div class="score"><span class="n" id="facedN">–</span><span class="d">/ 7</span></div>
+        <span class="sev sev-na" id="facedSev">資料不足</span>
+        <div class="bd" id="facedBd"></div>
+      </div>
+      <div class="card">
+        <h3>E-FACED</h3>
+        <div class="score"><span class="n" id="efacedN">–</span><span class="d">/ 9</span></div>
+        <span class="sev sev-na" id="efacedSev">資料不足</span>
+        <div class="bd" id="efacedBd"></div>
+      </div>
+    </div>
+
+    <div class="grid cols2">
+      <div class="card">
+        <h3>病人摘要</h3>
+        <table id="demoTbl"></table>
+        <div class="note">姓名 / 病歷號 / 身分證號預設遮蔽，點擊可暫時顯示；匯出時一律移除。</div>
+      </div>
+      <div class="card">
+        <h3>評分輸入參數（可直接修改，分數即時重算）</h3>
+        <table id="paramTbl"></table>
+        <div class="note">
+          <span class="auto">自動</span> = 由 PDF 擷取　<span class="edited">已修改</span> = 你手動覆寫　<span class="miss">待補</span> = 未擷取到，請人工填入<br>
+          BSI 使用 MRC 1–5 量表，本表輸入 mMRC 0–4，換算時自動 +1。
+        </div>
+      </div>
+    </div>
+
+    <div class="grid cols2">
+      <div class="card">
+        <h3>FEV₁ 趨勢（% predicted）</h3>
+        <div id="fevChart"></div>
+      </div>
+      <div class="card">
+        <h3>痰液微生物時間軸</h3>
+        <div id="microChart"></div>
+        <div id="microChips" class="mt-sm"></div>
+      </div>
+    </div>
+
+    <div class="grid cols2">
+      <div class="card">
+        <h3>臨床提示（依 ERS 2017 / BTS 2019 一般原則）</h3>
+        <div id="flags"></div>
+        <div class="note">僅為依擷取資料產生的檢核提示，<b>不是個別病人的醫療建議</b>，須由主治醫師判讀。</div>
+      </div>
+      <div class="card">
+        <h3>用藥與治療紀錄（PDF 中偵測到）</h3>
+        <div id="meds"></div>
+        <h3 class="mt-md">影像 / 其他發現</h3>
+        <div id="findings"></div>
+      </div>
+    </div>
+
+    <div class="card mt-md" id="provCard">
+      <h3>來源追溯 — 每個數值取自哪一頁、哪一行</h3>
+      <div class="prov" id="prov"></div>
+      <div class="note">任何自動擷取都可能出錯。臨床決策前請逐項核對原始病歷。</div>
+    </div>
+
+  </div>
+
+  <div class="foot">
+    <b>隱私設計</b>：本檔案為單一 HTML，內嵌 pdf.js（Apache-2.0）與中日韓字元對應表，不載入任何外部資源。
+    Content-Security-Policy 設為 <code>default-src 'none'; connect-src 'none'</code>，
+    即使程式有瑕疵，瀏覽器也會阻擋一切對外連線。PDF 以 ArrayBuffer 在記憶體中解析，
+    不使用 localStorage / IndexedDB / Cookie / Service Worker，關閉分頁後不留痕跡。<br>
+    <b>使用前請確認</b>：全碟加密已開啟 · 瀏覽器使用無擴充套件的獨立設定檔 · 本檔案不放在 OneDrive / iCloud / Google Drive 同步目錄。<br>
+    <b>免責</b>：BSI / FACED / E-FACED 分數與提示僅供臨床參考，不取代專業判斷。使用者須自行確認符合所屬機構之個資、IRB 與資安規範。
+  </div>
+
+</div>
+
+<script id="cmaps">/*__CMAPS__*/</script>
+<script id="pdfjsworker">/*__PDFJS_WORKER__*/</script>
+<script id="pdfjslib">/*__PDFJS_LIB__*/</script>
+<script id="app">
+'use strict';
+(function () {
+
+/* ══════════════════════════════════════════════════════════════════
+   0. 零外連自我驗證
+   ══════════════════════════════════════════════════════════════════ */
+window.addEventListener('load', function () {
+  var pill = document.getElementById('netPill');
+  var ext = 0;
+  try {
+    ext = performance.getEntriesByType('resource').filter(function (r) {
+      return r.name.indexOf('data:') !== 0 && r.name !== location.href;
+    }).length;
+  } catch (e) { ext = -1; }
+  if (ext === 0) { pill.className = 'pill'; pill.textContent = '● 零外連：0 個外部請求'; }
+  else { pill.className = 'pill warn'; pill.textContent = '⚠ 偵測到 ' + ext + ' 個外部請求'; }
+});
+
+/* ══════════════════════════════════════════════════════════════════
+   1. PDF → 文字（完全離線，pdf.js 以主執行緒 fake worker 模式運行）
+   ══════════════════════════════════════════════════════════════════ */
+var CMAPS = window.__CMAPS__ || {};
+
+function b64ToBytes(b64) {
+  var bin = atob(b64), len = bin.length, out = new Uint8Array(len);
+  for (var i = 0; i < len; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+
+function EmbeddedCMapReaderFactory() {}
+EmbeddedCMapReaderFactory.prototype.fetch = function (params) {
+  var name = params.name;
+  if (name && Object.prototype.hasOwnProperty.call(CMAPS, name)) {
+    return Promise.resolve({ cMapData: b64ToBytes(CMAPS[name]), compressionType: 1 });
+  }
+  return Promise.reject(new Error('內嵌字元對應表不含 ' + name));
+};
+
+// 全形 → 半形，統一標點，方便後續比對
+function normalize(s) {
+  return s.replace(/[！-～]/g, function (c) {
+    return String.fromCharCode(c.charCodeAt(0) - 0xFEE0);
+  }).replace(/　/g, ' ')
+    .replace(/[   ]/g, ' ')
+    .replace(/[ \t]+/g, ' ')
+    .trim();
+}
+
+function itemsToLines(items) {
+  var rows = [];
+  for (var i = 0; i < items.length; i++) {
+    var it = items[i];
+    if (!it.str || !it.str.trim()) continue;
+    var x = it.transform[4], y = it.transform[5];
+    var row = null;
+    for (var j = rows.length - 1; j >= 0 && j > rows.length - 6; j--) {
+      if (Math.abs(rows[j].y - y) < 2.4) { row = rows[j]; break; }
+    }
+    if (!row) { row = { y: y, cells: [] }; rows.push(row); }
+    row.cells.push({ x: x, w: it.width || 0, s: it.str });
+  }
+  rows.sort(function (a, b) { return b.y - a.y; });
+  var out = [];
+  for (var k = 0; k < rows.length; k++) {
+    var cells = rows[k].cells.sort(function (a, b) { return a.x - b.x; });
+    var line = '', prevEnd = null;
+    for (var m = 0; m < cells.length; m++) {
+      var c = cells[m];
+      if (prevEnd !== null && c.x - prevEnd > 1.2) line += ' ';
+      line += c.s;
+      prevEnd = c.x + c.w;
+    }
+    line = normalize(line);
+    if (line) out.push(line);
+  }
+  return out;
+}
+
+function readPdf(file) {
+  return file.arrayBuffer().then(function (buf) {
+    var task = pdfjsLib.getDocument({
+      data: new Uint8Array(buf),
+      isEvalSupported: false,      // 不需要 CSP 的 'unsafe-eval'
+      disableFontFace: true,       // 不渲染，只取文字
+      useSystemFonts: false,
+      useWorkerFetch: false,
+      cMapPacked: true,
+      CMapReaderFactory: EmbeddedCMapReaderFactory
+    });
+    return task.promise;
+  }).then(function (doc) {
+    var lines = [], chain = Promise.resolve();
+    var _loop = function (p) {
+      chain = chain.then(function () {
+        return doc.getPage(p).then(function (page) {
+          return page.getTextContent().then(function (tc) {
+            var ls = itemsToLines(tc.items);
+            for (var i = 0; i < ls.length; i++) lines.push({ page: p, text: ls[i] });
+            page.cleanup();
+          });
+        });
+      });
+    };
+    for (var p = 1; p <= doc.numPages; p++) _loop(p);
+    return chain.then(function () {
+      var np = doc.numPages;
+      return doc.destroy().then(function () {
+        return { name: file.name, pages: np, lines: lines };
+      });
+    });
+  });
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   2. 規則式擷取
+   ══════════════════════════════════════════════════════════════════ */
+
+// ── 日期：支援西元與民國年 ──────────────────────────────────────
+var DATE_RE = /(?:民國\s*)?(\d{2,4})\s*[\/\-\.年]\s*(\d{1,2})\s*[\/\-\.月]\s*(\d{1,2})\s*日?/;
+var DATE_RE_G = new RegExp(DATE_RE.source, 'g');
+
+function parseDate(y, m, d) {
+  y = +y; m = +m; d = +d;
+  if (y < 200) y += 1911;                       // 民國年
+  else if (y < 100) y += (y > 50 ? 1900 : 2000);
+  if (y < 1900 || y > 2100 || m < 1 || m > 12 || d < 1 || d > 31) return null;
+  var dt = new Date(Date.UTC(y, m - 1, d));
+  if (dt.getUTCMonth() !== m - 1) return null;
+  return dt;
+}
+function matchDate(str) {
+  var m = str.match(DATE_RE);
+  return m ? parseDate(m[1], m[2], m[3]) : null;
+}
+function fmtDate(dt) {
+  if (!dt) return '—';
+  return dt.getUTCFullYear() + '-' + String(dt.getUTCMonth() + 1).padStart(2, '0') +
+         '-' + String(dt.getUTCDate()).padStart(2, '0');
+}
+
+// ── 搜尋輔助 ────────────────────────────────────────────────────
+function findFirst(doc, re, pick, exclude) {
+  for (var i = 0; i < doc.lines.length; i++) {
+    var l = doc.lines[i];
+    if (exclude && exclude.test(l.text)) continue;
+    var m = l.text.match(re);
+    if (m) {
+      var v = pick ? pick(m, l) : m[1];
+      if (v !== null && v !== undefined && v !== '') {
+        return { value: v, page: l.page, snippet: l.text, file: doc.name };
+      }
+    }
+  }
+  return null;
+}
+function findAllLines(doc, re) {
+  var out = [];
+  for (var i = 0; i < doc.lines.length; i++) {
+    if (re.test(doc.lines[i].text)) out.push(doc.lines[i]);
+    re.lastIndex = 0;
+  }
+  return out;
+}
+function num(v) { var n = parseFloat(v); return isFinite(n) ? n : null; }
+function inRange(n, lo, hi) { return n !== null && n >= lo && n <= hi ? n : null; }
+
+// ── 微生物字典 ──────────────────────────────────────────────────
+var ORGANISMS = [
+  { key: 'PA',   cls: 'pa',    label: 'Pseudomonas aeruginosa (綠膿桿菌)',
+    re: /pseudomonas\s*(?:aeruginosa)?|綠膿桿菌|P\.\s?aeruginosa|\bPSAE\b|\bPsA\b/i },
+  { key: 'NTM',  cls: 'ntm',   label: '非結核分枝桿菌 (NTM / MAC)',
+    re: /non[\-\s]?tuberculous\s*mycobacteri|\bNTM\b|Mycobacterium\s*(?:avium|abscessus|intracellulare|kansasii|chelonae|fortuitum)|非結核分枝桿菌|\bMAC\b/i },
+  { key: 'HI',   cls: 'other', label: 'Haemophilus influenzae',
+    re: /haemophilus\s*influenzae|嗜血桿菌|H\.\s?influenzae/i },
+  { key: 'MRSA', cls: 'other', label: 'MRSA',
+    re: /\bMRSA\b|methicillin[\-\s]?resistant\s*staph/i },
+  { key: 'SA',   cls: 'other', label: 'Staphylococcus aureus',
+    re: /staphylococcus\s*aureus|金黃色葡萄球菌|S\.\s?aureus/i },
+  { key: 'KP',   cls: 'other', label: 'Klebsiella pneumoniae',
+    re: /klebsiella\s*pneumoniae|克雷伯氏菌|K\.\s?pneumoniae/i },
+  { key: 'MC',   cls: 'other', label: 'Moraxella catarrhalis',
+    re: /moraxella\s*catarrhalis|卡他莫拉菌/i },
+  { key: 'SM',   cls: 'other', label: 'Stenotrophomonas maltophilia',
+    re: /stenotrophomonas|xanthomonas\s*maltophilia/i },
+  { key: 'ACH',  cls: 'other', label: 'Achromobacter',
+    re: /achromobacter|alcaligenes\s*xylosoxidans/i },
+  { key: 'BC',   cls: 'other', label: 'Burkholderia cepacia',
+    re: /burkholderia|洋蔥伯克氏菌/i },
+  { key: 'ASP',  cls: 'other', label: 'Aspergillus',
+    re: /aspergillus\s*(?:fumigatus|niger|flavus)?|麴菌|ABPA/i },
+  { key: 'EC',   cls: 'other', label: 'Escherichia coli',
+    re: /escherichia\s*coli|\bE\.\s?coli\b/i },
+  { key: 'AB',   cls: 'other', label: 'Acinetobacter baumannii',
+    re: /acinetobacter/i }
+];
+var NEG_RE = /no\s*(?:bacterial\s*)?growth|無細菌生長|未生長|normal\s*(?:respiratory\s*)?flora|正常菌叢|negative\s*culture|培養陰性/i;
+var CULTURE_CTX = /culture|培養|sputum|痰|microbiolog|菌|gram\s*stain|抗生素敏感|susceptibilit/i;
+
+// ── 用藥字典 ────────────────────────────────────────────────────
+var MEDS = [
+  { g: '長期巨環內酯 (macrolide)', re: /azithromycin|clarithromycin|erythromycin|日舒|服立治爾|阿奇黴素|克拉黴素/i },
+  { g: '吸入性抗生素',            re: /inhaled?\s*(?:tobramycin|colistin|gentamicin|amikacin)|tobramycin|colisti?n|colomycin|吸入型?抗生素/i },
+  { g: '口服/靜脈抗生素',          re: /amoxicillin|augmentin|co[\-\s]?amoxiclav|levofloxacin|moxifloxacin|ciprofloxacin|ceftazidime|piperacillin|meropenem|doxycycline|安滅菌|可樂必妥/i },
+  { g: '化痰 / 黏液活性藥',        re: /acetylcyste?ine|\bNAC\b|carbocisteine|erdosteine|ambroxol|bromhexine|dornase|化痰|祛痰/i },
+  { g: '高張生理食鹽水 / 甘露醇',  re: /hypertonic\s*saline|3%\s*NaCl|7%\s*NaCl|mannitol|高張生理食鹽水|高張鹽水/i },
+  { g: '支氣管擴張劑 (LABA/LAMA/SABA)', re: /formoterol|salmeterol|indacaterol|vilanterol|olodaterol|tiotropium|glycopyrron|umeclidinium|aclidinium|salbutamol|albuterol|terbutaline|ipratropium|\bLABA\b|\bLAMA\b|\bSABA\b/i },
+  { g: '吸入性類固醇 (ICS)',       re: /budesonide|fluticasone|beclomethasone|ciclesonide|mometasone|\bICS\b|吸入性?類固醇/i },
+  { g: '氣道清潔 / 呼吸復健',      re: /airway\s*clearance|chest\s*physiotherapy|postural\s*drainage|\bACBT\b|flutter|acapella|\bPEP\b|胸腔物理治療|姿位引流|呼吸訓練|肺部復健|pulmonary\s*rehab/i },
+  { g: '疫苗',                     re: /influenza\s*vaccin|pneumococcal\s*vaccin|\bPPSV\b|\bPCV\s?1?3\b|流感疫苗|肺炎鏈球菌疫苗|COVID[\-\s]?19\s*vaccin/i }
+];
+
+// ── 肺葉 ────────────────────────────────────────────────────────
+var LOBES = [
+  { k: 'RUL', re: /\bRUL\b|right\s*upper\s*lobe|右上葉/i },
+  { k: 'RML', re: /\bRML\b|right\s*middle\s*lobe|右中葉/i },
+  { k: 'RLL', re: /\bRLL\b|right\s*lower\s*lobe|右下葉/i },
+  { k: 'LUL', re: /\bLUL\b|left\s*upper\s*lobe|左上葉/i },
+  { k: 'LLL', re: /\bLLL\b|left\s*lower\s*lobe|左下葉/i },
+  { k: 'Lingula', re: /lingula|舌葉|舌節/i }
+];
+
+/* ── 單一文件擷取 ──────────────────────────────────────────────── */
+function extractDoc(doc) {
+  var r = { file: doc.name, pages: doc.pages, lines: doc.lines.length, fields: {}, organisms: [],
+            meds: [], lobes: [], findings: [], dates: [] };
+  var F = r.fields;
+
+  // 所有日期（供推定就診日 / 時間軸）
+  for (var i = 0; i < doc.lines.length; i++) {
+    var t = doc.lines[i].text, mm;
+    DATE_RE_G.lastIndex = 0;
+    while ((mm = DATE_RE_G.exec(t)) !== null) {
+      var d = parseDate(mm[1], mm[2], mm[3]);
+      if (d) r.dates.push({ d: d, page: doc.lines[i].page, snippet: t });
+    }
+  }
+
+  // 就診日期
+  F.visitDate = findFirst(doc, new RegExp('(?:就診|門診|看診|檢查|報告|採檢|收案|Visit|Exam|Report|Collect(?:ion)?|Study)\\s*(?:日期|Date)?\\s*[:：]?\\s*' + DATE_RE.source, 'i'),
+    function (m) { var d = parseDate(m[1], m[2], m[3]); return d ? fmtDate(d) : null; });
+  if (!F.visitDate && r.dates.length) {
+    // 退而求其次：取文件中最晚的合理日期
+    var sorted = r.dates.slice().sort(function (a, b) { return b.d - a.d; });
+    var now = Date.now();
+    for (var s = 0; s < sorted.length; s++) {
+      if (sorted[s].d.getTime() <= now + 86400000) {
+        F.visitDate = { value: fmtDate(sorted[s].d), page: sorted[s].page, snippet: sorted[s].snippet, file: doc.name, weak: true };
+        break;
+      }
+    }
+  }
+
+  // 身分識別（僅為了遮蔽與提醒，不會被匯出）
+  // 姓名：中文姓名不吃空白（避免把後面的「病歷號…」一起吃進來）；英文姓名最多兩個空白
+  F.name = findFirst(doc,
+    /(?:病患?姓名|姓\s*名|Patient\s*Name|Name)\s*[:：]\s*([一-鿿]{2,8}|[A-Za-z][A-Za-z\.\-]*(?:\s[A-Za-z][A-Za-z\.\-]*){0,2})/,
+    function (m) {
+      return m[1].replace(/(?:病歷號?碼?|身分證(?:字號|號碼)?|性別|年齡|出生).*$/, '').trim() || null;
+    });
+  F.chartNo = findFirst(doc, /(?:病歷號碼|病歷號|病歷編號|Chart\s*(?:No|Number)|\bMRN\b|醫療記錄號)\s*[:：]?\s*([A-Za-z0-9\-]{4,20})/i);
+  F.nid = findFirst(doc, /\b([A-Z][12]\d{8})\b/);
+
+  // 年齡 / 性別 / 生日
+  F.age = findFirst(doc, /(?:年齡|Age)\s*[:：]?\s*(\d{1,3})\s*(?:歲|y(?:rs?|ears?)?[\s\-]?o(?:ld)?)?/i,
+    function (m) { return inRange(num(m[1]), 0, 120); });
+  if (!F.age) {
+    F.age = findFirst(doc, /(\d{1,3})\s*(?:歲|y\/o|y\.o\.|yo\b)/i,
+      function (m) { return inRange(num(m[1]), 0, 120); });
+  }
+  F.sex = findFirst(doc, /(?:性別|Sex|Gender)\s*[:：]?\s*(男|女|M|F|Male|Female)/i,
+    function (m) { var v = m[1].toUpperCase(); return (v === '男' || v === 'M' || v === 'MALE') ? '男' : '女'; });
+  F.birth = findFirst(doc, new RegExp('(?:出生(?:日期|年月日)?|生日|Birth\\s*(?:day|Date)?|D\\.?O\\.?B\\.?)\\s*[:：]?\\s*' + DATE_RE.source, 'i'),
+    function (m) { var d = parseDate(m[1], m[2], m[3]); return d ? fmtDate(d) : null; });
+
+  // 體位
+  F.height = findFirst(doc, /(?:身高|Height|\bHt\b)\s*[:：]?\s*(\d{2,3}(?:\.\d)?)\s*(?:cm|公分)?/i,
+    function (m) { return inRange(num(m[1]), 80, 230); });
+  F.weight = findFirst(doc, /(?:體重|Weight|\bBW\b|\bWt\b)\s*[:：]?\s*(\d{2,3}(?:\.\d)?)\s*(?:kg|公斤|公克)?/i,
+    function (m) { return inRange(num(m[1]), 20, 250); });
+  F.bmi = findFirst(doc, /\bBMI\b\s*[:：]?\s*(\d{1,2}(?:\.\d{1,2})?)/i,
+    function (m) { return inRange(num(m[1]), 8, 70); });
+  if (!F.bmi && F.height && F.weight) {
+    var h = F.height.value / 100;
+    F.bmi = { value: Math.round(F.weight.value / (h * h) * 10) / 10, page: F.weight.page,
+              snippet: '由身高 ' + F.height.value + ' cm / 體重 ' + F.weight.value + ' kg 計算',
+              file: doc.name, derived: true };
+  }
+
+  // 肺功能
+  // 「FEV1/FVC」整行排除，避免把比值當成 % predicted
+  var RATIO_LINE = /FEV\s*[-_]?\s*1\s*\/\s*FVC/i;
+  F.fev1pct = findFirst(doc, /FEV\s*[-_]?\s*1(?!\s*\/)[^%\n]{0,45}?(\d{1,3}(?:\.\d)?)\s*%/i,
+    function (m) { return inRange(num(m[1]), 5, 200); }, RATIO_LINE);
+  F.fev1L = findFirst(doc, /FEV\s*[-_]?\s*1(?!\s*\/)\s*[:：]?\s*(\d(?:\.\d{1,2})?)\s*(?:L|公升|liters?)\b/i,
+    function (m) { return inRange(num(m[1]), 0.2, 8); }, RATIO_LINE);
+  F.fvcpct = findFirst(doc, /\bFVC\b[^%\n]{0,45}?(\d{1,3}(?:\.\d)?)\s*%/i,
+    function (m) { return inRange(num(m[1]), 5, 200); }, RATIO_LINE);
+  F.ratio = findFirst(doc, /FEV\s*[-_]?\s*1\s*\/\s*FVC\s*[:：]?\s*(\d{1,3}(?:\.\d)?)\s*%?/i,
+    function (m) { return inRange(num(m[1]), 5, 120); });
+
+  // mMRC
+  F.mmrc = findFirst(doc, /\bm?MRC\b[^0-9IV]{0,22}?([0-4])\b/i,
+    function (m) { return inRange(num(m[1]), 0, 4); });
+  if (!F.mmrc) {
+    F.mmrc = findFirst(doc, /\bm?MRC\b[^IV]{0,18}(IV|III|II|I|0)\b/,
+      function (m) { return { '0': 0, 'I': 1, 'II': 2, 'III': 3, 'IV': 4 }[m[1]]; });
+  }
+
+  // 急性發作次數 / 住院
+  F.exac = findFirst(doc, /(?:急性)?(?:發作|exacerbations?|\bAE\b)[^0-9]{0,22}(\d{1,2})\s*(?:次|times|episodes?)/i,
+    function (m) { return inRange(num(m[1]), 0, 30); });
+  if (!F.exac) {
+    F.exac = findFirst(doc, /(\d{1,2})\s*(?:次|episodes?)\s*(?:的?)?(?:急性)?(?:發作|exacerbations?)/i,
+      function (m) { return inRange(num(m[1]), 0, 30); });
+  }
+  F.admit = findFirst(doc, /(?:住院|入院|admission|admitted|hospitali[sz]ation)/i, function (m, l) { return l.text; });
+  F.severeExac = findFirst(doc, /(?:因(?:肺炎|感染|發作|喘)[^。;\n]{0,12}住院|severe\s*exacerbation|需住院治療|admitted\s*for\s*(?:exacerbation|pneumonia))/i,
+    function (m, l) { return l.text; });
+
+  // 吸菸
+  F.packYear = findFirst(doc, /(\d{1,3})\s*(?:pack[\-\s]?years?|包[\-\s]?年|PY\b)/i,
+    function (m) { return inRange(num(m[1]), 0, 200); });
+  F.smoking = findFirst(doc, /(?:吸菸|抽菸|smoking|smoker|菸癮|戒菸)/i, function (m, l) { return l.text; });
+
+  // SpO2 / 咳血 / 痰量
+  F.spo2 = findFirst(doc, /(?:SpO2|SaO2|血氧|oxygen\s*saturation)\s*[:：]?\s*(\d{2,3})\s*%?/i,
+    function (m) { return inRange(num(m[1]), 50, 100); });
+  F.hemoptysis = findFirst(doc, /(?:h?emoptysis|咳血|血痰|痰中帶血)/i, function (m, l) { return l.text; });
+
+  // 微生物
+  var seen = {};
+  for (var oi = 0; oi < ORGANISMS.length; oi++) {
+    var org = ORGANISMS[oi];
+    var hits = findAllLines(doc, org.re);
+    for (var hi = 0; hi < hits.length; hi++) {
+      var line = hits[hi];
+      var dt = matchDate(line.text) || (F.visitDate ? matchDate(F.visitDate.value) : null);
+      var negative = NEG_RE.test(line.text);
+      var id = org.key + '|' + (dt ? fmtDate(dt) : 'nodate') + '|' + line.page;
+      if (seen[id]) continue;
+      seen[id] = 1;
+      r.organisms.push({ key: org.key, label: org.label, cls: org.cls, negative: negative,
+                         date: dt ? fmtDate(dt) : null, page: line.page, snippet: line.text, file: doc.name });
+    }
+  }
+  var negHits = findAllLines(doc, NEG_RE);
+  for (var ni = 0; ni < negHits.length; ni++) {
+    if (!CULTURE_CTX.test(negHits[ni].text)) continue;
+    var ndt = matchDate(negHits[ni].text) || (F.visitDate ? matchDate(F.visitDate.value) : null);
+    r.organisms.push({ key: 'NEG', label: '無致病菌生長', cls: 'neg', negative: true,
+                       date: ndt ? fmtDate(ndt) : null, page: negHits[ni].page,
+                       snippet: negHits[ni].text, file: doc.name });
+  }
+
+  // 用藥
+  for (var mi = 0; mi < MEDS.length; mi++) {
+    var hitsM = findAllLines(doc, MEDS[mi].re);
+    if (hitsM.length) {
+      r.meds.push({ group: MEDS[mi].g, page: hitsM[0].page, snippet: hitsM[0].text, file: doc.name,
+                    count: hitsM.length });
+    }
+  }
+
+  // 影像 / 肺葉
+  var hasBE = findAllLines(doc, /bronchiectasi|支氣管擴張|bronchiectatic/i);
+  if (hasBE.length) r.findings.push({ k: '支氣管擴張描述', page: hasBE[0].page, snippet: hasBE[0].text, file: doc.name });
+  for (var li = 0; li < LOBES.length; li++) {
+    var lh = findAllLines(doc, LOBES[li].re);
+    if (lh.length) r.lobes.push({ k: LOBES[li].k, page: lh[0].page, snippet: lh[0].text, file: doc.name });
+  }
+  var cyst = findFirst(doc, /cystic|囊狀|saccular|囊袋狀/i, function (m, l) { return l.text; });
+  if (cyst) { r.findings.push({ k: '囊狀型 (cystic/saccular)', page: cyst.page, snippet: cyst.snippet, file: doc.name }); r.cystic = cyst; }
+  var vari = findFirst(doc, /varicose|靜脈曲張狀|串珠狀/i, function (m, l) { return l.text; });
+  if (vari) r.findings.push({ k: '靜脈曲張型 (varicose)', page: vari.page, snippet: vari.snippet, file: doc.name });
+  var cyl = findFirst(doc, /cylindric|柱狀|管狀/i, function (m, l) { return l.text; });
+  if (cyl) r.findings.push({ k: '柱狀型 (cylindrical)', page: cyl.page, snippet: cyl.snippet, file: doc.name });
+  var etio = findFirst(doc, /post[\-\s]?infect|結核後|TB\s*sequel|\bABPA\b|cystic\s*fibrosis|囊狀纖維化|immunodeficien|免疫缺乏|低免疫球蛋白|primary\s*ciliary|纖毛不動|\bPCD\b|rheumatoid|類風濕|潰瘍性結腸炎|Crohn|alpha[\-\s]?1|逆流|GERD|異物吸入/i,
+    function (m, l) { return l.text; });
+  if (etio) r.findings.push({ k: '可能病因線索', page: etio.page, snippet: etio.snippet, file: doc.name });
+
+  return r;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   3. 合併多份文件 → 病人模型
+   ══════════════════════════════════════════════════════════════════ */
+var STATE = {
+  docs: [],        // 原始擷取結果
+  params: {},      // 評分參數：{value, src, manual}
+  unmasked: false
+};
+
+var PARAM_DEFS = [
+  { k: 'age',      label: '年齡（歲）',                    type: 'num', min: 0,  max: 120 },
+  { k: 'bmi',      label: 'BMI (kg/m²)',                  type: 'num', min: 8,  max: 70, step: 0.1 },
+  { k: 'fev1pct',  label: 'FEV₁ % predicted',             type: 'num', min: 5,  max: 200, step: 0.1 },
+  { k: 'mmrc',     label: 'mMRC 呼吸困難分級 (0–4)',       type: 'num', min: 0,  max: 4 },
+  { k: 'exac1y',   label: '過去 1 年急性發作次數',          type: 'num', min: 0,  max: 30 },
+  { k: 'sevExac1y',label: '過去 1 年因發作住院次數',        type: 'num', min: 0,  max: 20 },
+  { k: 'admit2y',  label: '過去 2 年曾因呼吸道問題住院',    type: 'bool' },
+  { k: 'lobes',    label: '侵犯肺葉數 (1–6)',              type: 'num', min: 0,  max: 6 },
+  { k: 'cystic',   label: '影像為囊狀型 (cystic)',          type: 'bool' },
+  { k: 'paChronic',label: 'Pseudomonas 慢性定殖',           type: 'bool' },
+  { k: 'otherChronic', label: '其他致病菌慢性定殖',          type: 'bool' }
+];
+
+function pick(field) {  // 從多份文件挑最可信的一筆（最新、非推定）
+  var best = null;
+  for (var i = 0; i < STATE.docs.length; i++) {
+    var f = STATE.docs[i].fields[field];
+    if (!f) continue;
+    var d = STATE.docs[i].fields.visitDate ? Date.parse(STATE.docs[i].fields.visitDate.value) : 0;
+    var score = (f.weak ? 0 : 1000000000000) + (isFinite(d) ? d : 0);
+    if (!best || score > best.score) best = { f: f, score: score };
+  }
+  return best ? best.f : null;
+}
+
+function allOrganisms() {
+  var out = [];
+  for (var i = 0; i < STATE.docs.length; i++) out = out.concat(STATE.docs[i].organisms);
+  return out.sort(function (a, b) {
+    if (!a.date) return 1; if (!b.date) return -1;
+    return Date.parse(a.date) - Date.parse(b.date);
+  });
+}
+
+// 慢性定殖：同一菌種於 1 年內 ≥2 次陽性且間隔 ≥3 個月
+function chronicColonization(key) {
+  var dates = allOrganisms().filter(function (o) {
+    return o.key === key && !o.negative && o.date;
+  }).map(function (o) { return Date.parse(o.date); }).sort(function (a, b) { return a - b; });
+  var uniq = [];
+  for (var i = 0; i < dates.length; i++) if (uniq.indexOf(dates[i]) < 0) uniq.push(dates[i]);
+  for (var a = 0; a < uniq.length; a++) {
+    for (var b = a + 1; b < uniq.length; b++) {
+      var gap = uniq[b] - uniq[a];
+      if (gap >= 90 * 86400000 && gap <= 365 * 86400000) return { chronic: true, n: uniq.length };
+    }
+  }
+  return { chronic: false, n: uniq.length };
+}
+
+function fevSeries() {
+  var pts = [];
+  for (var i = 0; i < STATE.docs.length; i++) {
+    var d = STATE.docs[i];
+    if (d.fields.fev1pct && d.fields.visitDate) {
+      var t = Date.parse(d.fields.visitDate.value);
+      if (isFinite(t)) pts.push({ t: t, v: d.fields.fev1pct.value, label: d.fields.visitDate.value, file: d.file });
+    }
+  }
+  return pts.sort(function (a, b) { return a.t - b.t; });
+}
+
+function buildParams() {
+  var prevManual = {};
+  for (var k in STATE.params) if (STATE.params[k] && STATE.params[k].manual) prevManual[k] = STATE.params[k];
+  var P = {};
+
+  function set(key, field, transform) {
+    var f = field ? pick(field) : null;
+    P[key] = f ? { value: transform ? transform(f.value) : f.value, src: f, manual: false }
+               : { value: null, src: null, manual: false };
+  }
+
+  set('age', 'age');
+  set('bmi', 'bmi');
+  set('fev1pct', 'fev1pct');
+  set('mmrc', 'mmrc');
+  set('exac1y', 'exac');
+
+  // 住院
+  var admitSrc = pick('admit');
+  var sevSrc = pick('severeExac');
+  P.admit2y = { value: admitSrc ? true : null, src: admitSrc, manual: false };
+  P.sevExac1y = { value: sevSrc ? 1 : (admitSrc ? null : 0), src: sevSrc || admitSrc, manual: false };
+
+  // 肺葉
+  var lobeKeys = {}, lobeSrc = null;
+  for (var i = 0; i < STATE.docs.length; i++) {
+    for (var j = 0; j < STATE.docs[i].lobes.length; j++) {
+      lobeKeys[STATE.docs[i].lobes[j].k] = 1;
+      if (!lobeSrc) lobeSrc = STATE.docs[i].lobes[j];
+    }
+  }
+  var nLobes = Object.keys(lobeKeys).length;
+  P.lobes = { value: nLobes > 0 ? nLobes : null,
+              src: lobeSrc ? { value: Object.keys(lobeKeys).join(', '), page: lobeSrc.page,
+                               snippet: lobeSrc.snippet, file: lobeSrc.file } : null, manual: false };
+
+  var cystSrc = null;
+  for (var ci = 0; ci < STATE.docs.length; ci++) if (STATE.docs[ci].cystic) { cystSrc = STATE.docs[ci].cystic; break; }
+  P.cystic = { value: cystSrc ? true : null, src: cystSrc, manual: false };
+
+  // 定殖
+  var pa = chronicColonization('PA');
+  var paAny = allOrganisms().filter(function (o) { return o.key === 'PA' && !o.negative; });
+  P.paChronic = { value: pa.chronic ? true : (paAny.length ? null : false),
+                  src: paAny.length ? paAny[0] : null, manual: false };
+
+  var otherAny = allOrganisms().filter(function (o) {
+    return o.key !== 'PA' && o.key !== 'NEG' && !o.negative;
+  });
+  var otherChronic = false, otherSrc = otherAny.length ? otherAny[0] : null;
+  var keys = {};
+  for (var oi = 0; oi < otherAny.length; oi++) keys[otherAny[oi].key] = 1;
+  for (var kk in keys) if (chronicColonization(kk).chronic) otherChronic = true;
+  P.otherChronic = { value: otherChronic ? true : (otherAny.length ? null : false), src: otherSrc, manual: false };
+
+  for (var mk in prevManual) P[mk] = prevManual[mk];
+  STATE.params = P;
+}
+
+function val(k) { var p = STATE.params[k]; return p ? p.value : null; }
+
+/* ══════════════════════════════════════════════════════════════════
+   4. 嚴重度評分
+   ══════════════════════════════════════════════════════════════════ */
+function computeBSI() {
+  var rows = [], total = 0, missing = [];
+  function add(label, pts, ok) { rows.push({ label: label, pts: pts, ok: ok }); if (ok) total += pts; else missing.push(label); }
+
+  var age = val('age');
+  add('年齡 ' + (age === null ? '?' : age),
+      age === null ? 0 : (age < 50 ? 0 : age <= 69 ? 2 : age <= 79 ? 4 : 6), age !== null);
+
+  var bmi = val('bmi');
+  add('BMI ' + (bmi === null ? '?' : bmi), bmi === null ? 0 : (bmi < 18.5 ? 2 : 0), bmi !== null);
+
+  var f = val('fev1pct');
+  add('FEV₁ ' + (f === null ? '?' : f + '%'),
+      f === null ? 0 : (f > 80 ? 0 : f >= 50 ? 1 : f >= 30 ? 2 : 3), f !== null);
+
+  var ad = val('admit2y');
+  add('近 2 年住院', ad ? 5 : 0, ad !== null);
+
+  var ex = val('exac1y');
+  add('近 1 年發作 ' + (ex === null ? '?' : ex + ' 次'), ex === null ? 0 : (ex >= 3 ? 2 : 0), ex !== null);
+
+  var mm = val('mmrc');
+  var mrc = mm === null ? null : mm + 1;   // BSI 用 MRC 1–5
+  add('MRC ' + (mrc === null ? '?' : mrc) + '（mMRC ' + (mm === null ? '?' : mm) + '）',
+      mrc === null ? 0 : (mrc <= 3 ? 0 : mrc === 4 ? 2 : 3), mm !== null);
+
+  var pa = val('paChronic'), oc = val('otherChronic');
+  var colPts = pa ? 3 : (oc ? 1 : 0);
+  add('定殖菌' + (pa ? '：綠膿桿菌' : oc ? '：其他菌種' : '：無'), colPts, pa !== null || oc !== null);
+
+  var lb = val('lobes'), cy = val('cystic');
+  var radOk = lb !== null || cy !== null;
+  add('影像範圍' + (radOk ? '（' + (lb === null ? '?' : lb) + ' 葉' + (cy ? ' · 囊狀' : '') + '）' : ''),
+      ((lb !== null && lb >= 3) || cy) ? 1 : 0, radOk);
+
+  var sev = missing.length > 3 ? null : (total <= 4 ? 'mild' : total <= 8 ? 'mod' : 'sev');
+  return { total: total, rows: rows, missing: missing, sev: sev, max: 26 };
+}
+
+function computeFACED() {
+  var rows = [], total = 0, missing = [];
+  function add(label, pts, ok) { rows.push({ label: label, pts: pts, ok: ok }); if (ok) total += pts; else missing.push(label); }
+
+  var f = val('fev1pct');
+  add('F · FEV₁ ' + (f === null ? '?' : f + '%'), f === null ? 0 : (f >= 50 ? 0 : 2), f !== null);
+  var age = val('age');
+  add('A · 年齡 ' + (age === null ? '?' : age), age === null ? 0 : (age <= 70 ? 0 : 2), age !== null);
+  var pa = val('paChronic');
+  add('C · 綠膿桿菌定殖', pa ? 1 : 0, pa !== null);
+  var lb = val('lobes');
+  add('E · 侵犯 ' + (lb === null ? '?' : lb) + ' 葉', (lb !== null && lb > 2) ? 1 : 0, lb !== null);
+  var mm = val('mmrc');
+  add('D · mMRC ' + (mm === null ? '?' : mm), (mm !== null && mm >= 3) ? 1 : 0, mm !== null);
+
+  var sev = missing.length > 2 ? null : (total <= 2 ? 'mild' : total <= 4 ? 'mod' : 'sev');
+  return { total: total, rows: rows, missing: missing, sev: sev, max: 7 };
+}
+
+function computeEFACED() {
+  var rows = [], total = 0, missing = [];
+  function add(label, pts, ok) { rows.push({ label: label, pts: pts, ok: ok }); if (ok) total += pts; else missing.push(label); }
+
+  var se = val('sevExac1y');
+  add('E · 近 1 年住院發作 ' + (se === null ? '?' : se + ' 次'), (se !== null && se >= 1) ? 2 : 0, se !== null);
+  var f = val('fev1pct');
+  add('F · FEV₁ ' + (f === null ? '?' : f + '%'), f === null ? 0 : (f >= 50 ? 0 : 2), f !== null);
+  var age = val('age');
+  add('A · 年齡 ' + (age === null ? '?' : age), age === null ? 0 : (age <= 70 ? 0 : 2), age !== null);
+  var pa = val('paChronic');
+  add('C · 綠膿桿菌定殖', pa ? 1 : 0, pa !== null);
+  var lb = val('lobes');
+  add('E · 侵犯 ' + (lb === null ? '?' : lb) + ' 葉', (lb !== null && lb > 2) ? 1 : 0, lb !== null);
+  var mm = val('mmrc');
+  add('D · mMRC ' + (mm === null ? '?' : mm), (mm !== null && mm >= 3) ? 1 : 0, mm !== null);
+
+  var sev = missing.length > 2 ? null : (total <= 3 ? 'mild' : total <= 6 ? 'mod' : 'sev');
+  return { total: total, rows: rows, missing: missing, sev: sev, max: 9 };
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   5. DOM 輔助（全程 textContent，不使用 innerHTML）
+   ══════════════════════════════════════════════════════════════════ */
+function el(tag, cls, text) {
+  var e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text !== undefined && text !== null) e.textContent = String(text);
+  return e;
+}
+function clear(node) { while (node.firstChild) node.removeChild(node.firstChild); }
+function svgEl(tag, attrs) {
+  var e = document.createElementNS('http://www.w3.org/2000/svg', tag);
+  for (var k in attrs) e.setAttribute(k, String(attrs[k]));
+  return e;
+}
+function mask(s) {
+  if (!s) return '—';
+  s = String(s);
+  if (s.length <= 2) return s.charAt(0) + '＊';
+  return s.charAt(0) + '＊'.repeat(Math.max(1, s.length - 2)) + s.charAt(s.length - 1);
+}
+
+var logBox = document.getElementById('log');
+function log(msg, cls) {
+  logBox.hidden = false;
+  var d = el('div', cls || '', msg);
+  logBox.appendChild(d);
+  logBox.scrollTop = logBox.scrollHeight;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   6. 渲染
+   ══════════════════════════════════════════════════════════════════ */
+var SEVTXT = { mild: '輕度', mod: '中度', sev: '重度' };
+var SEVCLS = { mild: 'sev sev-mild', mod: 'sev sev-mod', sev: 'sev sev-sev' };
+
+function renderScore(prefix, res) {
+  document.getElementById(prefix + 'N').textContent = res.sev === null ? '–' : String(res.total);
+  var sv = document.getElementById(prefix + 'Sev');
+  if (res.sev === null) { sv.className = 'sev sev-na'; sv.textContent = '資料不足（缺 ' + res.missing.length + ' 項）'; }
+  else { sv.className = SEVCLS[res.sev]; sv.textContent = SEVTXT[res.sev] + '（' + res.total + '/' + res.max + '）'; }
+  var bd = document.getElementById(prefix + 'Bd');
+  clear(bd);
+  for (var i = 0; i < res.rows.length; i++) {
+    var r = res.rows[i];
+    var row = el('div', 'r' + (r.ok && r.pts === 0 ? ' zero' : ''));
+    row.appendChild(el('span', '', r.label));
+    row.appendChild(el('b', '', r.ok ? '+' + r.pts : '待補'));
+    bd.appendChild(row);
+  }
+}
+
+function renderDemo() {
+  var t = document.getElementById('demoTbl');
+  clear(t);
+  var name = pick('name'), chart = pick('chartNo'), nid = pick('nid'),
+      sex = pick('sex'), birth = pick('birth'), visit = pick('visitDate'),
+      smoke = pick('packYear'), spo2 = pick('spo2'), ratio = pick('ratio'), fvc = pick('fvcpct');
+
+  function row(label, value, sensitive) {
+    var tr = el('tr');
+    tr.appendChild(el('th', '', label));
+    var td = el('td');
+    if (value === null || value === undefined || value === '') { td.appendChild(el('span', 'miss', '—')); }
+    else if (sensitive) {
+      var sp = el('span', 'mask', STATE.unmasked ? String(value) : mask(value));
+      sp.title = '點擊切換顯示 / 遮蔽（不會被匯出）';
+      sp.addEventListener('click', function () { STATE.unmasked = !STATE.unmasked; renderDemo(); });
+      td.appendChild(sp);
+    } else td.textContent = String(value);
+    tr.appendChild(td);
+    t.appendChild(tr);
+  }
+
+  row('姓名', name ? name.value : null, true);
+  row('病歷號', chart ? chart.value : null, true);
+  row('身分證號', nid ? nid.value : null, true);
+  row('性別', sex ? sex.value : null);
+  row('出生日期', birth ? birth.value : null, true);
+  row('最近就診 / 報告日', visit ? visit.value : null);
+  row('FVC % pred', fvc ? fvc.value + ' %' : null);
+  row('FEV₁/FVC', ratio ? ratio.value + ' %' : null);
+  row('SpO₂', spo2 ? spo2.value + ' %' : null);
+  row('吸菸 (pack-year)', smoke ? smoke.value : null);
+  row('已載入文件', STATE.docs.length + ' 份 / ' +
+      STATE.docs.reduce(function (a, d) { return a + d.pages; }, 0) + ' 頁');
+}
+
+function renderParams() {
+  var t = document.getElementById('paramTbl');
+  clear(t);
+  var head = el('tr');
+  ['參數', '值', '來源'].forEach(function (h) { head.appendChild(el('th', '', h)); });
+  t.appendChild(head);
+
+  PARAM_DEFS.forEach(function (def) {
+    var p = STATE.params[def.k] || { value: null, src: null, manual: false };
+    var tr = el('tr');
+    tr.appendChild(el('td', '', def.label));
+
+    var td = el('td');
+    var input;
+    if (def.type === 'bool') {
+      input = el('input');
+      input.type = 'checkbox';
+      input.checked = p.value === true;
+      input.indeterminate = p.value === null;
+      input.addEventListener('change', function () {
+        STATE.params[def.k] = { value: input.checked, src: p.src, manual: true };
+        refresh();
+      });
+    } else {
+      input = el('input', 'num');
+      input.type = 'number';
+      input.min = def.min; input.max = def.max;
+      if (def.step) input.step = def.step;
+      input.value = p.value === null ? '' : String(p.value);
+      input.addEventListener('change', function () {
+        var v = input.value === '' ? null : parseFloat(input.value);
+        if (v !== null && (!isFinite(v) || v < def.min || v > def.max)) { input.value = ''; v = null; }
+        STATE.params[def.k] = { value: v, src: p.src, manual: true };
+        refresh();
+      });
+    }
+    td.appendChild(input);
+    tr.appendChild(td);
+
+    var td2 = el('td');
+    if (p.manual) td2.appendChild(el('span', 'edited', '已修改'));
+    else if (p.value !== null && p.src) {
+      var s = el('span', 'src', '自動 · p.' + p.src.page);
+      s.title = (p.src.file ? p.src.file + ' 第 ' + p.src.page + ' 頁\n' : '') + p.src.snippet;
+      td2.appendChild(s);
+    } else if (p.value !== null) td2.appendChild(el('span', 'auto', '推定'));
+    else td2.appendChild(el('span', 'miss', '待補'));
+    tr.appendChild(td2);
+    t.appendChild(tr);
+  });
+}
+
+function renderFev() {
+  var box = document.getElementById('fevChart');
+  clear(box);
+  var pts = fevSeries();
+  if (pts.length === 0) {
+    box.appendChild(el('div', 'empty', '未擷取到可定位日期的 FEV₁ 數值。上傳多次門診／肺功能報告即可產生趨勢線。'));
+    return;
+  }
+  if (pts.length === 1) {
+    var one = el('div');
+    one.appendChild(el('div', 'score', ''));
+    one.firstChild.appendChild(el('span', 'n', pts[0].v));
+    one.firstChild.appendChild(el('span', 'd', '% predicted'));
+    one.appendChild(el('div', 'empty', pts[0].label + ' · 僅單一時間點，無法繪製趨勢'));
+    box.appendChild(one);
+    return;
+  }
+
+  var W = 520, H = 190, ml = 40, mr = 12, mt = 14, mb = 26;
+  var t0 = pts[0].t, t1 = pts[pts.length - 1].t;
+  var vmax = Math.max(100, Math.ceil(Math.max.apply(null, pts.map(function (p) { return p.v; })) / 10) * 10);
+  var vmin = Math.min(0, Math.floor(Math.min.apply(null, pts.map(function (p) { return p.v; })) / 10) * 10);
+  function X(t) { return t1 === t0 ? ml : ml + (t - t0) / (t1 - t0) * (W - ml - mr); }
+  function Y(v) { return mt + (1 - (v - vmin) / (vmax - vmin)) * (H - mt - mb); }
+
+  var svg = svgEl('svg', { viewBox: '0 0 ' + W + ' ' + H, role: 'img' });
+  // 參考線 80 / 50 / 30 %
+  [[80, '#4ade80'], [50, '#facc15'], [30, '#f87171']].forEach(function (g) {
+    if (g[0] < vmin || g[0] > vmax) return;
+    svg.appendChild(svgEl('line', { x1: ml, x2: W - mr, y1: Y(g[0]), y2: Y(g[0]),
+      stroke: g[1], 'stroke-width': 1, 'stroke-dasharray': '3 4', opacity: .38 }));
+    var lb = svgEl('text', { x: ml - 6, y: Y(g[0]) + 3.5, 'text-anchor': 'end',
+      fill: g[1], 'font-size': 9.5, opacity: .8 });
+    lb.textContent = g[0] + '%';
+    svg.appendChild(lb);
+  });
+  svg.appendChild(svgEl('line', { x1: ml, x2: W - mr, y1: Y(vmin), y2: Y(vmin), stroke: '#2a2d3e', 'stroke-width': 1 }));
+
+  var dAttr = pts.map(function (p, i) { return (i ? 'L' : 'M') + X(p.t).toFixed(1) + ' ' + Y(p.v).toFixed(1); }).join(' ');
+  svg.appendChild(svgEl('path', { d: dAttr, fill: 'none', stroke: '#60a5fa', 'stroke-width': 2,
+    'stroke-linejoin': 'round', 'stroke-linecap': 'round' }));
+
+  pts.forEach(function (p, i) {
+    svg.appendChild(svgEl('circle', { cx: X(p.t), cy: Y(p.v), r: 3.6, fill: '#60a5fa' }));
+    var vt = svgEl('text', { x: X(p.t), y: Y(p.v) - 8, 'text-anchor': 'middle', fill: '#e2e8f0', 'font-size': 10 });
+    vt.textContent = p.v;
+    svg.appendChild(vt);
+    if (i === 0 || i === pts.length - 1) {
+      var dt = svgEl('text', { x: X(p.t), y: H - 8,
+        'text-anchor': i === 0 ? 'start' : 'end', fill: '#64748b', 'font-size': 9.5 });
+      dt.textContent = p.label;
+      svg.appendChild(dt);
+    }
+  });
+  box.appendChild(svg);
+
+  var first = pts[0], last = pts[pts.length - 1];
+  var yrs = (last.t - first.t) / (365.25 * 86400000);
+  if (yrs > 0.4) {
+    var slope = (last.v - first.v) / yrs;
+    var txt = '變化率約 ' + (slope >= 0 ? '+' : '') + slope.toFixed(1) + ' %pred / 年（' +
+              first.label + ' → ' + last.label + '）';
+    var n = el('div', 'note' + (slope < -2 ? ' decline' : ''), txt);
+    box.appendChild(n);
+  }
+}
+
+function renderMicro() {
+  var box = document.getElementById('microChart');
+  var chips = document.getElementById('microChips');
+  clear(box); clear(chips);
+  var orgs = allOrganisms().filter(function (o) { return o.key !== 'NEG'; });
+  var negs = allOrganisms().filter(function (o) { return o.key === 'NEG'; });
+
+  if (orgs.length === 0) {
+    box.appendChild(el('div', 'empty', negs.length
+      ? '偵測到培養報告，但未辨識出致病菌（可能為「無細菌生長」或正常菌叢）。'
+      : '未擷取到痰液培養結果。'));
+  } else {
+    var dated = orgs.filter(function (o) { return o.date; });
+    var byKey = {};
+    orgs.forEach(function (o) { (byKey[o.key] = byKey[o.key] || []).push(o); });
+    var keys = Object.keys(byKey);
+
+    if (dated.length >= 2) {
+      var ts = dated.map(function (o) { return Date.parse(o.date); });
+      var t0 = Math.min.apply(null, ts), t1 = Math.max.apply(null, ts);
+      var W = 520, rowH = 22, ml = 128, mr = 14, mt = 6, mb = 22;
+      var H = mt + keys.length * rowH + mb;
+      var svg = svgEl('svg', { viewBox: '0 0 ' + W + ' ' + H, role: 'img' });
+      function X(t) { return t1 === t0 ? (ml + (W - ml - mr) / 2) : ml + (t - t0) / (t1 - t0) * (W - ml - mr); }
+
+      keys.forEach(function (k, i) {
+        var y = mt + i * rowH + rowH / 2;
+        svg.appendChild(svgEl('line', { x1: ml, x2: W - mr, y1: y, y2: y, stroke: '#22263a', 'stroke-width': 1 }));
+        var lab = svgEl('text', { x: ml - 8, y: y + 3.5, 'text-anchor': 'end', fill: '#94a3b8', 'font-size': 10 });
+        lab.textContent = byKey[k][0].label.replace(/\s*\(.*\)/, '').slice(0, 24);
+        svg.appendChild(lab);
+        byKey[k].forEach(function (o) {
+          if (!o.date) return;
+          var color = o.negative ? '#4ade80' : (k === 'PA' ? '#f87171' : k === 'NTM' ? '#c4b5fd' : '#60a5fa');
+          var c = svgEl('circle', { cx: X(Date.parse(o.date)), cy: y, r: 4.6, fill: color,
+            stroke: '#0f1117', 'stroke-width': 1 });
+          var ti = svgEl('title'); ti.textContent = o.date + ' · ' + o.label + ' · p.' + o.page;
+          c.appendChild(ti);
+          svg.appendChild(c);
+        });
+      });
+      var d0 = svgEl('text', { x: ml, y: H - 6, fill: '#64748b', 'font-size': 9.5 });
+      d0.textContent = fmtDate(new Date(t0)); svg.appendChild(d0);
+      var d1 = svgEl('text', { x: W - mr, y: H - 6, 'text-anchor': 'end', fill: '#64748b', 'font-size': 9.5 });
+      d1.textContent = fmtDate(new Date(t1)); svg.appendChild(d1);
+      box.appendChild(svg);
+    } else {
+      box.appendChild(el('div', 'empty', '培養結果缺少可定位的日期，僅列出偵測到的菌種。'));
+    }
+  }
+
+  var shown = {};
+  allOrganisms().forEach(function (o) {
+    var id = o.key + (o.negative ? '-neg' : '');
+    if (shown[id]) return;
+    shown[id] = 1;
+    var cc = o.key === 'NEG' ? { chronic: false, n: 0 } : chronicColonization(o.key);
+    var txt = o.label.replace(/\s*\(.*\)/, '') +
+      (o.negative ? '（陰性）' : cc.chronic ? ' · 慢性定殖' : cc.n > 1 ? ' · ' + cc.n + ' 次陽性' : '');
+    chips.appendChild(el('span', 'chip ' + o.cls, txt));
+  });
+}
+
+function renderMeds() {
+  var box = document.getElementById('meds');
+  clear(box);
+  var groups = {};
+  STATE.docs.forEach(function (d) {
+    d.meds.forEach(function (m) {
+      if (!groups[m.group]) groups[m.group] = m;
+    });
+  });
+  var ks = Object.keys(groups);
+  if (!ks.length) { box.appendChild(el('div', 'empty', '未偵測到可辨識的用藥或治療紀錄。')); return; }
+  ks.forEach(function (k) {
+    var c = el('span', 'chip', k);
+    c.title = groups[k].file + ' 第 ' + groups[k].page + ' 頁：\n' + groups[k].snippet;
+    box.appendChild(c);
+  });
+}
+
+function renderFindings() {
+  var box = document.getElementById('findings');
+  clear(box);
+  var seen = {}, any = false;
+  STATE.docs.forEach(function (d) {
+    d.findings.forEach(function (f) {
+      if (seen[f.k]) return;
+      seen[f.k] = 1; any = true;
+      var c = el('span', 'chip', f.k);
+      c.title = f.file + ' 第 ' + f.page + ' 頁：\n' + f.snippet;
+      box.appendChild(c);
+    });
+  });
+  var lb = STATE.params.lobes;
+  if (lb && lb.src && lb.src.value) {
+    var c2 = el('span', 'chip', '肺葉：' + lb.src.value);
+    c2.title = lb.src.snippet;
+    box.appendChild(c2); any = true;
+  }
+  var hemo = pick('hemoptysis');
+  if (hemo) {
+    var c3 = el('span', 'chip pa', '咳血 / 血痰');
+    c3.title = hemo.snippet; box.appendChild(c3); any = true;
+  }
+  if (!any) box.appendChild(el('div', 'empty', '未偵測到影像或其他結構化發現。'));
+}
+
+function renderFlags(bsi) {
+  var box = document.getElementById('flags');
+  clear(box);
+  var out = [];
+  function add(level, title, detail) { out.push({ level: level, title: title, detail: detail }); }
+
+  var pa = chronicColonization('PA');
+  var paAny = allOrganisms().filter(function (o) { return o.key === 'PA' && !o.negative; });
+  var ntm = allOrganisms().filter(function (o) { return o.key === 'NTM' && !o.negative; });
+  var fev = val('fev1pct'), bmi = val('bmi'), ex = val('exac1y');
+  var medGroups = {};
+  STATE.docs.forEach(function (d) { d.meds.forEach(function (m) { medGroups[m.group] = 1; }); });
+
+  if (paAny.length && !pa.chronic) {
+    add('hi', '偵測到綠膿桿菌但尚未達慢性定殖定義',
+        '新發現的 P. aeruginosa 通常建議考慮根除療程；請確認是否為首次分離並回顧培養時序。');
+  }
+  if (pa.chronic) {
+    add('hi', '綠膿桿菌慢性定殖', '與較差預後、較多發作相關。請評估吸入性抗生素與長期抑菌策略之適應症。');
+  }
+  if (ntm.length) {
+    add('hi', '培養出非結核分枝桿菌 (NTM)',
+        '在 NTM 未排除前使用 macrolide 單一療法可能誘導抗藥性；長期 macrolide 前建議先確認 NTM 狀態。');
+  }
+  if (ex !== null && ex >= 3) {
+    add('md', '過去 1 年急性發作 ' + ex + ' 次（≥3）',
+        '達到考慮長期抑制性治療（如長期 macrolide 或吸入性抗生素）之門檻；使用前須排除 NTM 並評估 QT 與聽力。');
+  }
+  if (ex !== null && ex >= 3 && !medGroups['長期巨環內酯 (macrolide)'] && !medGroups['吸入性抗生素']) {
+    add('md', '頻繁發作但未見長期抑制性治療紀錄', '病歷中未偵測到 macrolide 或吸入性抗生素，請確認是否已評估。');
+  }
+  if (fev !== null && fev < 30) {
+    add('hi', 'FEV₁ < 30% predicted', '屬嚴重氣流阻塞，建議評估氧氣需求、肺部復健與（必要時）移植轉介。');
+  } else if (fev !== null && fev < 50) {
+    add('md', 'FEV₁ < 50% predicted', '建議加強氣道清潔、肺部復健與發作預防。');
+  }
+  if (bmi !== null && bmi < 18.5) {
+    add('md', 'BMI ' + bmi + '（< 18.5）', '低體重與較差預後相關，建議營養評估與介入。');
+  }
+  if (!medGroups['氣道清潔 / 呼吸復健']) {
+    add('lo', '未偵測到氣道清潔 / 呼吸物理治療紀錄', '氣道清潔是支氣管擴張症的基礎治療，建議於病歷中明確記錄。');
+  }
+  if (!medGroups['疫苗']) {
+    add('lo', '未偵測到流感 / 肺炎鏈球菌疫苗紀錄', '建議確認年度流感疫苗與肺炎鏈球菌疫苗接種狀態。');
+  }
+  var etioFound = STATE.docs.some(function (d) {
+    return d.findings.some(function (f) { return f.k === '可能病因線索'; });
+  });
+  if (!etioFound) {
+    add('lo', '病歷中未見明確病因檢查紀錄',
+        '指引建議至少評估免疫球蛋白、ABPA（總 IgE / Aspergillus 特異性 IgE）與既往感染史。');
+  }
+  if (bsi.sev === 'sev') {
+    add('hi', 'BSI ' + bsi.total + ' 分（重度）', '與較高的住院率與死亡率相關，建議密集追蹤與多專科照護。');
+  }
+  if (bsi.missing.length) {
+    add('lo', '有 ' + bsi.missing.length + ' 項評分參數未擷取到',
+        '缺項：' + bsi.missing.join('、') + '。請於上方參數表人工補填，分數才有效。');
+  }
+
+  if (!out.length) { box.appendChild(el('div', 'empty', '目前沒有觸發任何提示。')); return; }
+  var order = { hi: 0, md: 1, lo: 2 };
+  out.sort(function (a, b) { return order[a.level] - order[b.level]; });
+  out.forEach(function (o) {
+    var f = el('div', 'flag ' + o.level);
+    f.appendChild(el('div', 'ic', o.level === 'hi' ? '!' : o.level === 'md' ? '▲' : 'ⓘ'));
+    var tx = el('div', 'tx');
+    tx.appendChild(el('b', '', o.title));
+    tx.appendChild(el('span', '', o.detail));
+    f.appendChild(tx);
+    box.appendChild(f);
+  });
+}
+
+function renderProv() {
+  var box = document.getElementById('prov');
+  clear(box);
+  var listed = [];
+  PARAM_DEFS.forEach(function (def) {
+    var p = STATE.params[def.k];
+    if (p && p.src && p.src.snippet) listed.push({ label: def.label, src: p.src, manual: p.manual, value: p.value });
+  });
+  ['name', 'chartNo', 'visitDate', 'sex', 'birth', 'fvcpct', 'ratio', 'spo2', 'packYear'].forEach(function (k) {
+    var f = pick(k);
+    if (f && f.snippet) listed.push({ label: k, src: f, manual: false, value: f.value });
+  });
+  if (!listed.length) { box.appendChild(el('div', 'empty', '無擷取紀錄。')); return; }
+  listed.forEach(function (it) {
+    var p = el('div', 'p');
+    var b = el('b', '', it.label + '：' + (it.value === null ? '—' : String(it.value)) + (it.manual ? '（已人工覆寫）' : ''));
+    p.appendChild(b);
+    p.appendChild(el('div', 'loc', (it.src.file || '') + ' · 第 ' + it.src.page + ' 頁'));
+    p.appendChild(el('code', '', it.src.snippet));
+    box.appendChild(p);
+  });
+}
+
+function refresh() {
+  var bsi = computeBSI();
+  renderScore('bsi', bsi);
+  renderScore('faced', computeFACED());
+  renderScore('efaced', computeEFACED());
+  renderDemo();
+  renderParams();
+  renderFev();
+  renderMicro();
+  renderMeds();
+  renderFindings();
+  renderFlags(bsi);
+  renderProv();
+  var dz = document.getElementById('drop');
+  dz.classList.toggle('compact', STATE.docs.length > 0);
+  dz.querySelector('h2').textContent = STATE.docs.length
+    ? '已載入 ' + STATE.docs.length + ' 份 PDF — 可繼續拖入更多檔案以延長趨勢'
+    : '把門診紀錄 PDF 拖進來';
+  document.getElementById('dash').hidden = STATE.docs.length === 0;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   7. 檔案處理
+   ══════════════════════════════════════════════════════════════════ */
+function handleFiles(fileList) {
+  var files = Array.prototype.slice.call(fileList).filter(function (f) {
+    return /\.pdf$/i.test(f.name) || f.type === 'application/pdf';
+  });
+  if (!files.length) { log('沒有可處理的 PDF 檔。', 'err'); return; }
+
+  var chain = Promise.resolve();
+  files.forEach(function (file) {
+    chain = chain.then(function () {
+      log('解析中：' + file.name + '（' + Math.round(file.size / 1024) + ' KB）…');
+      return readPdf(file).then(function (doc) {
+        if (doc.lines.length === 0) {
+          log('⚠ ' + file.name + '：共 ' + doc.pages + ' 頁，但抽不到任何文字。' +
+              '這份 PDF 很可能是掃描影像，需要 OCR 才能解析。', 'wr');
+          return;
+        }
+        var ex = extractDoc(doc);
+        STATE.docs.push(ex);
+        var got = Object.keys(ex.fields).filter(function (k) { return ex.fields[k]; }).length;
+        log('✓ ' + file.name + '：' + doc.pages + ' 頁 / ' + doc.lines.length + ' 行 → 擷取 ' +
+            got + ' 個欄位、' + ex.organisms.length + ' 筆微生物、' + ex.meds.length + ' 類用藥', 'ok');
+      }).catch(function (err) {
+        log('✗ ' + file.name + '：' + (err && err.message ? err.message : String(err)), 'err');
+      });
+    });
+  });
+
+  chain.then(function () {
+    if (!STATE.docs.length) return;
+    buildParams();
+    refresh();
+    document.getElementById('drop').scrollIntoView({ block: 'start' });
+  });
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   8. 事件 / 匯出 / 清除
+   ══════════════════════════════════════════════════════════════════ */
+var fileInput = document.getElementById('file');
+var drop = document.getElementById('drop');
+
+document.getElementById('btnPick').addEventListener('click', function () { fileInput.click(); });
+document.getElementById('btnPick2').addEventListener('click', function () { fileInput.click(); });
+fileInput.addEventListener('change', function () { handleFiles(fileInput.files); fileInput.value = ''; });
+
+['dragenter', 'dragover'].forEach(function (evName) {
+  drop.addEventListener(evName, function (e) { e.preventDefault(); drop.classList.add('over'); });
+});
+['dragleave', 'drop'].forEach(function (evName) {
+  drop.addEventListener(evName, function (e) { e.preventDefault(); drop.classList.remove('over'); });
+});
+drop.addEventListener('drop', function (e) {
+  e.preventDefault();
+  if (e.dataTransfer && e.dataTransfer.files) handleFiles(e.dataTransfer.files);
+});
+window.addEventListener('dragover', function (e) { e.preventDefault(); });
+window.addEventListener('drop', function (e) { e.preventDefault(); });
+
+document.getElementById('btnPrint').addEventListener('click', function () { window.print(); });
+
+document.getElementById('btnClear').addEventListener('click', function () {
+  if (STATE.docs.length && !confirm('清除所有已載入的資料？此動作無法復原。')) return;
+  STATE.docs = []; STATE.params = {}; STATE.unmasked = false;
+  clear(logBox); logBox.hidden = true;
+  document.getElementById('dash').hidden = true;
+  var dz0 = document.getElementById('drop');
+  dz0.classList.remove('compact');
+  dz0.querySelector('h2').textContent = '把門診紀錄 PDF 拖進來';
+  log('已清除所有資料。', 'ok');
+});
+
+document.getElementById('btnExport').addEventListener('click', function () {
+  if (!STATE.docs.length) { alert('尚未載入任何資料。'); return; }
+  var bsi = computeBSI(), faced = computeFACED(), efaced = computeEFACED();
+  var params = {};
+  PARAM_DEFS.forEach(function (d) {
+    var p = STATE.params[d.k];
+    params[d.k] = { value: p ? p.value : null, manual: p ? p.manual : false };
+  });
+  var payload = {
+    schema: 'bronchiectasis-dashboard/1',
+    generatedAt: new Date().toISOString(),
+    deidentified: true,
+    note: '本檔已移除姓名、病歷號、身分證號、出生日期與原文片段。',
+    documentCount: STATE.docs.length,
+    parameters: params,
+    scores: {
+      BSI: { total: bsi.total, severity: bsi.sev, missing: bsi.missing },
+      FACED: { total: faced.total, severity: faced.sev, missing: faced.missing },
+      'E-FACED': { total: efaced.total, severity: efaced.sev, missing: efaced.missing }
+    },
+    organisms: allOrganisms().map(function (o) {
+      return { key: o.key, label: o.label, date: o.date, negative: o.negative };
+    }),
+    fev1Series: fevSeries().map(function (p) { return { date: p.label, fev1pct: p.v }; }),
+    medicationGroups: (function () {
+      var g = {}; STATE.docs.forEach(function (d) { d.meds.forEach(function (m) { g[m.group] = 1; }); });
+      return Object.keys(g);
+    })()
+  };
+  var blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = 'bronchiectasis-deid-' + new Date().toISOString().slice(0, 10) + '.json';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+  log('已匯出去識別 JSON（不含姓名 / 病歷號 / 身分證號 / 原文）。', 'ok');
+});
+
+window.addEventListener('beforeunload', function (e) {
+  if (STATE.docs.length) { e.preventDefault(); e.returnValue = ''; }
+});
+
+// 對外暴露最小測試介面（僅供自動化驗證使用）
+window.__BE__ = { STATE: STATE, extractDoc: extractDoc, readPdf: readPdf,
+                  computeBSI: computeBSI, computeFACED: computeFACED, computeEFACED: computeEFACED,
+                  buildParams: buildParams, refresh: refresh, handleFiles: handleFiles };
+
+})();
+</script>
+</body>
+</html>
