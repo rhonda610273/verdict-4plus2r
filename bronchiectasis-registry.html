@@ -1,0 +1,1270 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Bj1F/PvFUsKOm6yoPd30MDQsniyekZ5/uDHCOLs5x2c='; style-src 'sha256-+sV9UrscCbxipUQYa1PLhK55EIe7QcejK6IRutHHN28='; img-src 'self' data:; font-src 'none'; connect-src 'none'; worker-src 'none'; child-src 'none'; frame-src 'none'; object-src 'none'; media-src 'none'; manifest-src 'none'; form-action 'none'; base-uri 'none'">
+<title>支氣管擴張症個案登錄簿</title>
+<style>
+:root{
+  color-scheme: light;
+  --ground:#f6f8fb; --surface:#ffffff; --raised:#eef2f8; --border:#dce3ed; --line:#eaeff6;
+  --text:#16202e; --muted:#59687e; --faint:#8494a8;
+  --accent:#1d5fd0; --accent-soft:#e7eefc; --accent-ink:#ffffff;
+  --ok:#177245; --ok-soft:#e3f3e9;
+  --warn:#8a5a00; --warn-soft:#fdf0d8;
+  --crit:#b3261e; --crit-soft:#fbe4e2;
+  --shadow:0 1px 2px rgba(20,32,50,.06), 0 8px 24px -12px rgba(20,32,50,.18);
+  --ui:-apple-system,BlinkMacSystemFont,"Segoe UI Variable Text","Segoe UI","PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif;
+  --mono:ui-monospace,SFMono-Regular,"Cascadia Mono",Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme: dark;
+    --ground:#0f1117; --surface:#1a1d2e; --raised:#20243a; --border:#2a2d3e; --line:#252940;
+    --text:#e2e8f0; --muted:#94a3b8; --faint:#64748b;
+    --accent:#60a5fa; --accent-soft:#16253f; --accent-ink:#08101f;
+    --ok:#4ade80; --ok-soft:#0c2e1c;
+    --warn:#facc15; --warn-soft:#3a2c07;
+    --crit:#f87171; --crit-soft:#3d1113;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --ground:#0f1117; --surface:#1a1d2e; --raised:#20243a; --border:#2a2d3e; --line:#252940;
+  --text:#e2e8f0; --muted:#94a3b8; --faint:#64748b;
+  --accent:#60a5fa; --accent-soft:#16253f; --accent-ink:#08101f;
+  --ok:#4ade80; --ok-soft:#0c2e1c;
+  --warn:#facc15; --warn-soft:#3a2c07;
+  --crit:#f87171; --crit-soft:#3d1113;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{background:var(--ground);color:var(--text);font-family:var(--ui);font-size:15px;line-height:1.55;
+  -webkit-text-size-adjust:100%}
+.num,.tab{font-variant-numeric:tabular-nums}
+
+button{font:inherit;cursor:pointer;border:1px solid var(--border);background:var(--surface);color:var(--text);
+  padding:.42rem .85rem;border-radius:8px;transition:background .12s,border-color .12s}
+button:hover{background:var(--raised)}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{
+  outline:2px solid var(--accent);outline-offset:2px}
+button.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:650}
+button.primary:hover{filter:brightness(1.08)}
+button.ghost{background:transparent;border-color:transparent;color:var(--muted)}
+button.ghost:hover{background:var(--raised);color:var(--text)}
+button.danger{border-color:var(--crit);color:var(--crit);background:transparent}
+button.danger:hover{background:var(--crit-soft)}
+button:disabled{opacity:.45;cursor:not-allowed}
+
+input,select,textarea{font:inherit;background:var(--surface);color:var(--text);border:1px solid var(--border);
+  border-radius:7px;padding:.38rem .55rem;width:100%}
+input[type=checkbox]{width:1.05rem;height:1.05rem;accent-color:var(--accent);flex:none}
+textarea{resize:vertical;min-height:4.5rem;line-height:1.6}
+label{display:block}
+
+/* ── 外框 ─────────────────────────────────────────────── */
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:30;background:var(--surface);
+  border-bottom:1px solid var(--border);display:flex;align-items:center;gap:.7rem;flex-wrap:wrap;
+  padding:.6rem 1rem}
+.mark{font-weight:750;letter-spacing:-.01em;font-size:1rem;white-space:nowrap}
+.mark span{color:var(--accent)}
+.grow{flex:1 1 auto}
+.wrap{max-width:1240px;margin:0 auto;padding-inline:1rem;padding-block:1.25rem 4rem}
+
+.tag{display:inline-flex;align-items:center;gap:.35rem;font-size:.72rem;font-weight:650;
+  padding:.2rem .55rem;border-radius:999px;border:1px solid transparent;white-space:nowrap}
+.tag-ok{background:var(--ok-soft);color:var(--ok)}
+.tag-warn{background:var(--warn-soft);color:var(--warn)}
+.tag-crit{background:var(--crit-soft);color:var(--crit)}
+.tag-none{background:var(--raised);color:var(--faint)}
+.tag-info{background:var(--accent-soft);color:var(--accent)}
+
+/* ── 起始畫面 ─────────────────────────────────────────── */
+.gate{max-width:560px;margin:3rem auto;background:var(--surface);border:1px solid var(--border);
+  border-radius:14px;padding:1.75rem;box-shadow:var(--shadow)}
+.gate h1{font-size:1.35rem;font-weight:700;letter-spacing:-.015em;margin-bottom:.4rem;text-wrap:balance}
+.gate .lede{color:var(--muted);font-size:.9rem;margin-bottom:1.4rem}
+.choice{display:grid;gap:.75rem}
+.opt{border:1px solid var(--border);border-radius:11px;padding:.9rem 1rem;background:var(--ground)}
+.opt h3{font-size:.92rem;font-weight:650;margin-bottom:.2rem}
+.opt p{font-size:.8rem;color:var(--muted);line-height:1.6}
+.opt .row{display:flex;gap:.5rem;margin-top:.7rem;align-items:center}
+.opt.off{opacity:.55}
+.pwrow{display:flex;gap:.5rem;margin-top:.7rem}
+.pwrow input{flex:1}
+.err{color:var(--crit);font-size:.82rem;margin-top:.5rem}
+.hintline{font-size:.78rem;color:var(--faint);line-height:1.7;margin-top:1.2rem;
+  border-top:1px solid var(--line);padding-top:.9rem}
+
+/* ── 統計列 ───────────────────────────────────────────── */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));gap:.6rem;margin-bottom:1.1rem}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:.7rem .85rem}
+.stat .k{font-size:.7rem;text-transform:uppercase;letter-spacing:.07em;color:var(--faint);font-weight:650}
+.stat .v{font-size:1.5rem;font-weight:700;letter-spacing:-.02em;line-height:1.2;margin-top:.15rem}
+.stat .s{font-size:.74rem;color:var(--muted)}
+.bars{display:flex;height:6px;border-radius:99px;overflow:hidden;margin-top:.5rem;background:var(--raised)}
+.bars i{display:block;height:100%}
+
+/* ── 清單 ─────────────────────────────────────────────── */
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:13px;overflow:hidden}
+.phead{display:flex;align-items:center;gap:.6rem;padding:.75rem 1rem;border-bottom:1px solid var(--line);
+  flex-wrap:wrap}
+.phead h2{font-size:.82rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700}
+.tablewrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:.86rem;min-width:720px}
+th{text-align:left;font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;color:var(--faint);
+  font-weight:650;padding:.5rem .75rem;border-bottom:1px solid var(--border);white-space:nowrap;
+  background:var(--surface);position:sticky;top:0}
+td{padding:.5rem .75rem;border-bottom:1px solid var(--line);vertical-align:middle}
+tbody tr{cursor:pointer}
+tbody tr:hover td{background:var(--raised)}
+tbody tr:last-child td{border-bottom:none}
+.caseid{font-family:var(--mono);font-size:.8rem;font-weight:650;color:var(--accent)}
+.mrn{font-family:var(--mono);font-size:.82rem;letter-spacing:.02em}
+.sevstripe{display:inline-block;width:3px;height:1.1em;border-radius:2px;vertical-align:-.18em;margin-right:.45rem}
+.empty{padding:2.5rem 1rem;text-align:center;color:var(--muted);font-size:.88rem}
+.demo-note{background:var(--warn-soft);color:var(--warn);font-size:.78rem;padding:.5rem 1rem;
+  display:flex;gap:.6rem;align-items:center;flex-wrap:wrap}
+
+/* ── 表單 ─────────────────────────────────────────────── */
+.form{display:grid;gap:1rem}
+fieldset{border:1px solid var(--border);border-radius:12px;padding:1rem 1.1rem 1.15rem;background:var(--surface)}
+legend{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700;
+  padding:0 .4rem}
+.fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:.75rem .9rem}
+.f label{font-size:.75rem;color:var(--muted);font-weight:600;margin-bottom:.22rem;display:block}
+.f .unit{color:var(--faint);font-weight:400}
+.wide{grid-column:1/-1}
+.checks{display:flex;flex-wrap:wrap;gap:.45rem .55rem}
+.chk{display:inline-flex;align-items:center;gap:.4rem;border:1px solid var(--border);border-radius:8px;
+  padding:.32rem .6rem;font-size:.82rem;background:var(--ground);cursor:pointer;user-select:none}
+.chk:hover{border-color:var(--accent)}
+.chk input{margin:0}
+.chk.on{background:var(--accent-soft);border-color:var(--accent);color:var(--accent);font-weight:600}
+.chk.on.crit{background:var(--crit-soft);border-color:var(--crit);color:var(--crit)}
+
+.scorebar{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.6rem}
+.scorecard{border:1px solid var(--border);border-radius:11px;padding:.7rem .85rem;background:var(--ground)}
+.scorecard .k{font-size:.7rem;letter-spacing:.07em;text-transform:uppercase;color:var(--faint);font-weight:650}
+.scorecard .v{font-size:1.65rem;font-weight:750;letter-spacing:-.02em;line-height:1.15}
+.scorecard .v small{font-size:.75rem;font-weight:500;color:var(--faint);letter-spacing:0}
+.scorecard .miss{font-size:.73rem;color:var(--warn);margin-top:.15rem;line-height:1.5}
+
+.fu{width:100%;border-collapse:collapse;font-size:.83rem;min-width:520px}
+.fu th{position:static}
+.fu td{padding:.3rem .4rem}
+.fu input{padding:.3rem .45rem}
+
+.formbar{position:sticky;bottom:0;background:var(--surface);border-top:1px solid var(--border);
+  padding:.7rem 1rem calc(.7rem + env(safe-area-inset-bottom,0px));display:flex;gap:.6rem;align-items:center;
+  flex-wrap:wrap;margin:0 -1rem -4rem;z-index:20}
+
+/* ── 對話框 ───────────────────────────────────────────── */
+.scrim{position:fixed;inset:0;background:rgba(10,15,25,.55);display:flex;align-items:center;
+  justify-content:center;padding:1rem;z-index:60}
+.dialog{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:1.3rem;
+  max-width:520px;width:100%;box-shadow:var(--shadow);max-height:85vh;overflow:auto}
+.dialog h3{font-size:1.05rem;font-weight:700;margin-bottom:.5rem;text-wrap:balance}
+.dialog p{font-size:.87rem;color:var(--muted);line-height:1.65;margin-bottom:.9rem}
+.dialog .acts{display:flex;gap:.5rem;justify-content:flex-end;flex-wrap:wrap}
+.dialog textarea{font-family:var(--mono);font-size:.74rem;min-height:11rem;margin-bottom:.9rem}
+
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(1.25rem + env(safe-area-inset-bottom,0px));
+  background:var(--text);color:var(--ground);padding:.55rem 1rem;border-radius:9px;font-size:.85rem;
+  font-weight:600;z-index:70;box-shadow:var(--shadow)}
+@media (prefers-reduced-motion: no-preference){
+  .toast{animation:rise .18s ease-out}
+  @keyframes rise{from{opacity:0;transform:translate(-50%,6px)}to{opacity:1;transform:translate(-50%,0)}}
+}
+.note{font-size:.78rem;color:var(--faint);line-height:1.7}
+.foot{margin-top:2rem;padding-top:1.1rem;border-top:1px solid var(--border);font-size:.77rem;
+  color:var(--faint);line-height:1.8}
+@media (max-width:560px){
+  .formbar{margin-inline:-1rem}
+  .mark{font-size:.92rem}
+}
+</style>
+</head>
+<body>
+
+<header class="bar">
+  <div class="mark">支氣管擴張症 <span>個案登錄簿</span></div>
+  <span class="tag tag-ok" id="netTag">● 零外連</span>
+  <span class="tag tag-none" id="storeTag" hidden>未儲存</span>
+  <div class="grow"></div>
+  <div id="barActions" hidden>
+    <button id="btnNew" class="primary">新增個案</button>
+    <button id="btnSaveFile">儲存加密檔</button>
+    <button id="btnExport">匯出去識別 CSV</button>
+    <button id="btnLock" class="ghost">鎖定</button>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- ══ 起始畫面 ══════════════════════════════════════ -->
+  <section class="gate" id="gate">
+    <h1>開始之前，先決定資料放哪裡</h1>
+    <p class="lede">這個登錄簿會記錄病歷號。請選一種保存方式——兩種都不會把資料送出這台電腦。</p>
+
+    <div class="choice">
+      <div class="opt" id="optStore">
+        <h3>加密保存（建議）</h3>
+        <p>設一組密碼，資料以 AES-256-GCM 加密。可存成加密檔隨身帶著，
+           在支援的環境也會自動存進這個瀏覽器。忘記密碼無法復原。</p>
+        <div class="pwrow">
+          <input type="password" id="pw1" placeholder="設定密碼（至少 8 字元）" autocomplete="new-password">
+          <input type="password" id="pw2" placeholder="再輸入一次" autocomplete="new-password">
+        </div>
+        <div class="row"><button class="primary" id="btnSetPw">建立登錄簿</button>
+          <span class="note" id="storeNote"></span></div>
+        <div class="err" id="pwErr" hidden></div>
+      </div>
+
+      <div class="opt" id="optUnlock" hidden>
+        <h3>解鎖既有登錄簿</h3>
+        <p id="unlockDesc">這個瀏覽器裡已有加密的登錄簿。</p>
+        <div class="pwrow">
+          <input type="password" id="pwUnlock" placeholder="輸入密碼" autocomplete="current-password">
+          <button class="primary" id="btnUnlock">解鎖</button>
+        </div>
+        <div class="err" id="unlockErr" hidden></div>
+      </div>
+
+      <div class="opt">
+        <h3>開啟加密檔</h3>
+        <p>載入先前存下的 <code>.json</code> 加密備份，繼續編輯或供討論會使用。</p>
+        <div class="row">
+          <button id="btnOpenFile">選擇檔案</button>
+          <input type="file" id="fileIn" accept="application/json,.json" hidden>
+        </div>
+      </div>
+
+      <div class="opt">
+        <h3>只用這次</h3>
+        <p>不設密碼、不寫入任何儲存空間。關掉分頁就全部消失，適合臨時看一下或示範。</p>
+        <div class="row"><button id="btnEphemeral">直接開始</button></div>
+      </div>
+    </div>
+
+    <div class="hintline">
+      解析與加密全部在這個瀏覽器分頁內完成。本檔案不含任何外部資源，
+      Content-Security-Policy 設為 <code>connect-src 'none'</code>，
+      即使程式有瑕疵也無法對外連線。<br>
+      使用前請確認：全碟加密已開啟 · 瀏覽器使用無擴充套件的獨立設定檔 ·
+      本檔案與備份檔不放在雲端同步目錄。
+    </div>
+  </section>
+
+  <!-- ══ 主畫面 ════════════════════════════════════════ -->
+  <main id="app" hidden>
+
+    <div id="listView">
+      <div class="stats" id="stats"></div>
+
+      <div class="panel">
+        <div class="phead">
+          <h2>個案清單</h2>
+          <span class="tag tag-none" id="countTag">0 案</span>
+          <div class="grow"></div>
+          <button id="btnReveal" class="ghost">顯示病歷號</button>
+        </div>
+        <div class="demo-note" id="demoNote" hidden>
+          <span>目前顯示的是範例資料，用來說明欄位怎麼填。</span>
+          <button id="btnClearDemo">清除範例</button>
+        </div>
+        <div class="tablewrap">
+          <table id="caseTable">
+            <thead><tr>
+              <th>個案</th><th>病歷號</th><th>年齡/性別</th><th>FEV₁</th>
+              <th>BSI</th><th>FACED</th><th>E-FACED</th><th>定殖</th><th>待辦</th><th>更新</th>
+            </tr></thead>
+            <tbody id="caseBody"></tbody>
+          </table>
+        </div>
+        <div class="empty" id="emptyState" hidden>還沒有任何個案。按右上角「新增個案」開始。</div>
+      </div>
+    </div>
+
+    <div id="formView" hidden></div>
+  </main>
+
+  <div class="foot" id="foot" hidden>
+    <b>用途</b>：科內個案登錄與討論紀錄。BSI / FACED / E-FACED 依 Chalmers 2014、
+    Martínez-García 2014 / 2017 計算，截切點請依所屬機構採用的版本核對。<br>
+    <b>缺漏處理</b>：任何評分項目未填，該分數只顯示下限（≥N）且不給嚴重度分級——
+    未填的項目只會讓分數更高，逕自當成 0 會低估嚴重度。<br>
+    <b>免責</b>：本工具僅供臨床參考與教學討論，不取代專業判斷。
+    使用者須自行確認符合所屬機構之個資、IRB 與資安規範。
+  </div>
+
+</div>
+
+<script id="app-js">
+'use strict';
+(function () {
+
+/* ═══ 工具 ══════════════════════════════════════════════ */
+function el(tag, cls, text) {
+  var e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text !== undefined && text !== null) e.textContent = String(text);
+  return e;
+}
+function clear(n) { while (n.firstChild) n.removeChild(n.firstChild); }
+function $(id) { return document.getElementById(id); }
+function today() { return new Date().toISOString().slice(0, 10); }
+function nowStamp() { return new Date().toISOString().slice(0, 16).replace('T', ' '); }
+function b64(bytes) {
+  var s = '';
+  for (var i = 0; i < bytes.length; i++) s += String.fromCharCode(bytes[i]);
+  return btoa(s);
+}
+function unb64(str) {
+  var bin = atob(str), out = new Uint8Array(bin.length);
+  for (var i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+function toast(msg) {
+  var t = el('div', 'toast', msg);
+  document.body.appendChild(t);
+  setTimeout(function () { if (t.parentNode) t.parentNode.removeChild(t); }, 2600);
+}
+
+// 頁內確認對話框（artifact 檢視器不會顯示 confirm()）
+function confirmDialog(title, body, okLabel, danger) {
+  return new Promise(function (resolve) {
+    var scrim = el('div', 'scrim');
+    var d = el('div', 'dialog');
+    d.appendChild(el('h3', '', title));
+    d.appendChild(el('p', '', body));
+    var acts = el('div', 'acts');
+    var cancel = el('button', '', '取消');
+    var ok = el('button', danger ? 'danger' : 'primary', okLabel || '確定');
+    acts.appendChild(cancel); acts.appendChild(ok);
+    d.appendChild(acts); scrim.appendChild(d); document.body.appendChild(scrim);
+    ok.focus();
+    function close(v) { document.body.removeChild(scrim); resolve(v); }
+    cancel.addEventListener('click', function () { close(false); });
+    ok.addEventListener('click', function () { close(true); });
+    scrim.addEventListener('click', function (e) { if (e.target === scrim) close(false); });
+    document.addEventListener('keydown', function esc(e) {
+      if (e.key === 'Escape') { document.removeEventListener('keydown', esc); close(false); }
+    });
+  });
+}
+
+function textDialog(title, body, content, filename) {
+  var scrim = el('div', 'scrim');
+  var d = el('div', 'dialog');
+  d.appendChild(el('h3', '', title));
+  d.appendChild(el('p', '', body));
+  var ta = el('textarea');
+  ta.value = content; ta.readOnly = true;
+  d.appendChild(ta);
+  var acts = el('div', 'acts');
+  var copy = el('button', '', '複製全部');
+  var dl = el('button', '', '下載檔案');
+  var close = el('button', 'primary', '關閉');
+  acts.appendChild(copy); acts.appendChild(dl); acts.appendChild(close);
+  d.appendChild(acts); scrim.appendChild(d); document.body.appendChild(scrim);
+  ta.focus(); ta.select();
+  copy.addEventListener('click', function () {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(content).then(function () { toast('已複製'); },
+        function () { ta.select(); toast('請按 Ctrl/Cmd+C 複製'); });
+    } else { ta.select(); toast('請按 Ctrl/Cmd+C 複製'); }
+  });
+  dl.addEventListener('click', function () { download(filename, content); });
+  close.addEventListener('click', function () { document.body.removeChild(scrim); });
+}
+
+function download(name, text) {
+  try {
+    var blob = new Blob([text], { type: 'application/json' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url; a.download = name;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1500);
+    toast('已下載 ' + name);
+  } catch (e) { toast('此環境不允許下載，請用「複製全部」'); }
+}
+
+/* ═══ 加密 ══════════════════════════════════════════════ */
+var SUBTLE = (window.crypto && window.crypto.subtle) ? window.crypto.subtle : null;
+var ITER = 600000;
+
+function deriveKey(pw, salt) {
+  return SUBTLE.importKey('raw', new TextEncoder().encode(pw), 'PBKDF2', false, ['deriveKey'])
+    .then(function (base) {
+      return SUBTLE.deriveKey({ name: 'PBKDF2', salt: salt, iterations: ITER, hash: 'SHA-256' },
+        base, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+    });
+}
+function encryptJSON(key, obj) {
+  var iv = crypto.getRandomValues(new Uint8Array(12));
+  return SUBTLE.encrypt({ name: 'AES-GCM', iv: iv }, key,
+    new TextEncoder().encode(JSON.stringify(obj))).then(function (ct) {
+      return { iv: b64(iv), ct: b64(new Uint8Array(ct)) };
+    });
+}
+function decryptJSON(key, env) {
+  return SUBTLE.decrypt({ name: 'AES-GCM', iv: unb64(env.iv) }, key, unb64(env.ct))
+    .then(function (pt) { return JSON.parse(new TextDecoder().decode(pt)); });
+}
+
+/* ═══ 本機儲存可用性 ════════════════════════════════════ */
+var LS_KEY = 'be-registry-v1';
+var lsOK = (function () {
+  try { localStorage.setItem('__t', '1'); localStorage.removeItem('__t'); return true; }
+  catch (e) { return false; }
+})();
+function lsGet() { try { return JSON.parse(localStorage.getItem(LS_KEY) || 'null'); } catch (e) { return null; } }
+function lsSet(v) { try { localStorage.setItem(LS_KEY, JSON.stringify(v)); return true; } catch (e) { return false; } }
+
+/* ═══ 狀態 ══════════════════════════════════════════════ */
+var S = {
+  cases: [], key: null, salt: null, mode: null,   // 'stored' | 'file' | 'ephemeral'
+  dirty: false, reveal: false, editing: null, demo: false, idleTimer: null
+};
+
+/* ═══ 欄位定義 ══════════════════════════════════════════ */
+var ETIOLOGY = ['感染後 / 結核後', 'ABPA', '免疫球蛋白缺乏', '原發性纖毛不動症 (PCD)',
+  '囊狀纖維化 (CF)', '類風濕 / 結締組織疾病', '發炎性腸道疾病', 'α1-抗胰蛋白酶缺乏',
+  '異物 / 阻塞', '胃食道逆流 / 吸入', '不明'];
+var LOBES = ['RUL', 'RML', 'RLL', 'LUL', 'LLL', 'Lingula'];
+var MORPH = ['柱狀 cylindrical', '靜脈曲張狀 varicose', '囊狀 cystic'];
+var ORGS = [
+  { k: 'PA', n: 'Pseudomonas aeruginosa', crit: true },
+  { k: 'NTM', n: '非結核分枝桿菌 (NTM)', crit: true },
+  { k: 'HI', n: 'Haemophilus influenzae' },
+  { k: 'SA', n: 'Staphylococcus aureus' },
+  { k: 'MRSA', n: 'MRSA' },
+  { k: 'KP', n: 'Klebsiella pneumoniae' },
+  { k: 'MC', n: 'Moraxella catarrhalis' },
+  { k: 'SM', n: 'Stenotrophomonas maltophilia' },
+  { k: 'ASP', n: 'Aspergillus' },
+  { k: 'OTH', n: '其他致病菌' }
+];
+var TREAT = ['長期 macrolide', '吸入性抗生素', '化痰 / 黏液活性藥', '高張生理食鹽水',
+  '氣道清潔 / 呼吸物理治療', '肺部復健', '支氣管擴張劑', '吸入性類固醇',
+  '流感 / 肺炎鏈球菌疫苗', '抗血小板 / 抗凝血藥', '長期氧氣'];
+
+function blankCase() {
+  return {
+    id: nextId(), mrn: '', initials: '', sex: '', age: null, dxDate: '',
+    etiology: [], lobes: [], morph: [], fev1: null, fvc: null, ratio: null,
+    height: null, weight: null, bmi: null,
+    mmrc: null, sputum: '', hemoptysis: null,
+    exac1y: null, sevExac1y: null, admit2y: null,
+    orgs: [], chronicPA: null, chronicOther: null,
+    treat: [], discussion: '', decision: '', todo: '', nextVisit: '',
+    followups: [], updated: nowStamp()
+  };
+}
+function nextId() {
+  var max = 0;
+  S.cases.forEach(function (c) {
+    var m = /^BE-(\d+)$/.exec(c.id || '');
+    if (m) max = Math.max(max, parseInt(m[1], 10));
+  });
+  return 'BE-' + String(max + 1).padStart(3, '0');
+}
+
+/* ═══ 評分 ══════════════════════════════════════════════ */
+function has(v) { return v !== null && v !== undefined && v !== ''; }
+
+function scoreBSI(c) {
+  var pts = 0, miss = [];
+  if (has(c.age)) pts += c.age < 50 ? 0 : c.age <= 69 ? 2 : c.age <= 79 ? 4 : 6; else miss.push('年齡');
+  if (has(c.bmi)) pts += c.bmi < 18.5 ? 2 : 0; else miss.push('BMI');
+  if (has(c.fev1)) pts += c.fev1 > 80 ? 0 : c.fev1 >= 50 ? 1 : c.fev1 >= 30 ? 2 : 3; else miss.push('FEV₁');
+  if (has(c.admit2y)) pts += c.admit2y ? 5 : 0; else miss.push('近 2 年住院');
+  if (has(c.exac1y)) pts += c.exac1y >= 3 ? 2 : 0; else miss.push('近 1 年發作');
+  if (has(c.mmrc)) { var mrc = c.mmrc + 1; pts += mrc <= 3 ? 0 : mrc === 4 ? 2 : 3; } else miss.push('mMRC');
+  if (has(c.chronicPA) || has(c.chronicOther)) pts += c.chronicPA ? 3 : (c.chronicOther ? 1 : 0);
+  else miss.push('定殖');
+  if (c.lobes.length || c.morph.length) pts += (c.lobes.length >= 3 || c.morph.indexOf(MORPH[2]) >= 0) ? 1 : 0;
+  else miss.push('影像');
+  return { pts: pts, miss: miss, max: 26,
+    sev: miss.length ? null : (pts <= 4 ? 'mild' : pts <= 8 ? 'mod' : 'sev') };
+}
+function scoreFACED(c) {
+  var pts = 0, miss = [];
+  if (has(c.fev1)) pts += c.fev1 >= 50 ? 0 : 2; else miss.push('FEV₁');
+  if (has(c.age)) pts += c.age <= 70 ? 0 : 2; else miss.push('年齡');
+  if (has(c.chronicPA)) pts += c.chronicPA ? 1 : 0; else miss.push('PA 定殖');
+  if (c.lobes.length) pts += c.lobes.length > 2 ? 1 : 0; else miss.push('侵犯肺葉');
+  if (has(c.mmrc)) pts += c.mmrc >= 3 ? 1 : 0; else miss.push('mMRC');
+  return { pts: pts, miss: miss, max: 7,
+    sev: miss.length ? null : (pts <= 2 ? 'mild' : pts <= 4 ? 'mod' : 'sev') };
+}
+function scoreEFACED(c) {
+  var pts = 0, miss = [];
+  if (has(c.sevExac1y)) pts += c.sevExac1y >= 1 ? 2 : 0; else miss.push('近 1 年住院發作');
+  if (has(c.fev1)) pts += c.fev1 >= 50 ? 0 : 2; else miss.push('FEV₁');
+  if (has(c.age)) pts += c.age <= 70 ? 0 : 2; else miss.push('年齡');
+  if (has(c.chronicPA)) pts += c.chronicPA ? 1 : 0; else miss.push('PA 定殖');
+  if (c.lobes.length) pts += c.lobes.length > 2 ? 1 : 0; else miss.push('侵犯肺葉');
+  if (has(c.mmrc)) pts += c.mmrc >= 3 ? 1 : 0; else miss.push('mMRC');
+  return { pts: pts, miss: miss, max: 9,
+    sev: miss.length ? null : (pts <= 3 ? 'mild' : pts <= 6 ? 'mod' : 'sev') };
+}
+var SEVTXT = { mild: '輕度', mod: '中度', sev: '重度' };
+var SEVCLS = { mild: 'tag-ok', mod: 'tag-warn', sev: 'tag-crit' };
+var SEVCOLOR = { mild: 'var(--ok)', mod: 'var(--warn)', sev: 'var(--crit)' };
+
+function scoreText(r) { return r.sev === null ? (r.pts > 0 ? '≥' + r.pts : '–') : String(r.pts); }
+
+/* ═══ 遮蔽 ══════════════════════════════════════════════ */
+function maskMRN(s) {
+  if (!s) return '—';
+  s = String(s);
+  if (S.reveal) return s;
+  if (s.length <= 2) return s.charAt(0) + '•';
+  return s.charAt(0) + '•'.repeat(Math.max(2, s.length - 2)) + s.charAt(s.length - 1);
+}
+
+/* ═══ 統計 ══════════════════════════════════════════════ */
+function renderStats() {
+  var box = $('stats'); clear(box);
+  var n = S.cases.length;
+  var dist = { mild: 0, mod: 0, sev: 0, na: 0 };
+  var paN = 0, paDen = 0, fevSum = 0, fevN = 0, todoN = 0;
+  S.cases.forEach(function (c) {
+    var b = scoreBSI(c);
+    dist[b.sev || 'na']++;
+    if (has(c.chronicPA)) { paDen++; if (c.chronicPA) paN++; }
+    if (has(c.fev1)) { fevSum += c.fev1; fevN++; }
+    if (c.todo && c.todo.trim()) todoN++;
+  });
+
+  function stat(k, v, s, extra) {
+    var d = el('div', 'stat');
+    d.appendChild(el('div', 'k', k));
+    var vv = el('div', 'v num', v); d.appendChild(vv);
+    if (s) d.appendChild(el('div', 's', s));
+    if (extra) d.appendChild(extra);
+    box.appendChild(d);
+  }
+  stat('收案數', n, n ? '最近更新 ' + S.cases[0].updated.slice(0, 10) : '尚無個案');
+
+  var bars = el('div', 'bars');
+  [['sev', 'var(--crit)'], ['mod', 'var(--warn)'], ['mild', 'var(--ok)'], ['na', 'var(--border)']]
+    .forEach(function (p) {
+      if (!dist[p[0]]) return;
+      var i = el('i');
+      i.style.width = (dist[p[0]] / Math.max(1, n) * 100) + '%';
+      i.style.background = p[1];
+      bars.appendChild(i);
+    });
+  stat('BSI 重度', dist.sev, '中度 ' + dist.mod + ' · 輕度 ' + dist.mild +
+    (dist.na ? ' · 未完成 ' + dist.na : ''), bars);
+
+  stat('綠膿桿菌定殖', paDen ? Math.round(paN / paDen * 100) + '%' : '—',
+    paDen ? paN + ' / ' + paDen + ' 已評估' : '尚無資料');
+  stat('平均 FEV₁', fevN ? (fevSum / fevN).toFixed(0) + '%' : '—',
+    fevN ? fevN + ' 案有肺功能' : '尚無資料');
+  stat('待辦個案', todoN, todoN ? '需於討論會追蹤' : '目前無待辦');
+}
+
+/* ═══ 清單 ══════════════════════════════════════════════ */
+function renderList() {
+  var tb = $('caseBody'); clear(tb);
+  $('countTag').textContent = S.cases.length + ' 案';
+  $('emptyState').hidden = S.cases.length > 0;
+  $('demoNote').hidden = !S.demo;
+  $('btnReveal').textContent = S.reveal ? '遮蔽病歷號' : '顯示病歷號';
+
+  S.cases.forEach(function (c) {
+    var b = scoreBSI(c), f = scoreFACED(c), e = scoreEFACED(c);
+    var tr = el('tr');
+    tr.tabIndex = 0;
+
+    var tdId = el('td');
+    var stripe = el('span', 'sevstripe');
+    stripe.style.background = b.sev ? SEVCOLOR[b.sev] : 'var(--border)';
+    tdId.appendChild(stripe);
+    tdId.appendChild(el('span', 'caseid', c.id));
+    tr.appendChild(tdId);
+
+    tr.appendChild(el('td', 'mrn', maskMRN(c.mrn)));
+    tr.appendChild(el('td', 'num', (has(c.age) ? c.age : '—') + ' / ' + (c.sex || '—')));
+    tr.appendChild(el('td', 'num', has(c.fev1) ? c.fev1 + '%' : '—'));
+
+    [b, f, e].forEach(function (r) {
+      var td = el('td');
+      var t = el('span', 'tag ' + (r.sev ? SEVCLS[r.sev] : 'tag-none'),
+        scoreText(r) + (r.sev ? ' ' + SEVTXT[r.sev] : ''));
+      if (!r.sev) t.title = '缺 ' + r.miss.length + ' 項：' + r.miss.join('、');
+      td.appendChild(t);
+      tr.appendChild(td);
+    });
+
+    var tdOrg = el('td');
+    if (c.chronicPA) tdOrg.appendChild(el('span', 'tag tag-crit', 'PA'));
+    else if (c.orgs.indexOf('NTM') >= 0) tdOrg.appendChild(el('span', 'tag tag-warn', 'NTM'));
+    else if (c.chronicOther) tdOrg.appendChild(el('span', 'tag tag-info', '其他'));
+    else if (has(c.chronicPA)) tdOrg.appendChild(el('span', 'tag tag-ok', '無'));
+    else tdOrg.appendChild(el('span', 'tag tag-none', '未評估'));
+    tr.appendChild(tdOrg);
+
+    tr.appendChild(el('td', '', c.todo && c.todo.trim() ? c.todo.trim().slice(0, 18) : '—'));
+    tr.appendChild(el('td', 'num', (c.updated || '').slice(0, 10)));
+
+    function open() { openForm(c.id); }
+    tr.addEventListener('click', open);
+    tr.addEventListener('keydown', function (ev) { if (ev.key === 'Enter') open(); });
+    tb.appendChild(tr);
+  });
+}
+
+/* ═══ 表單 ══════════════════════════════════════════════ */
+function field(label, node, wide) {
+  var d = el('div', 'f' + (wide ? ' wide' : ''));
+  var l = el('label', '', label);
+  if (node.id) l.htmlFor = node.id;
+  d.appendChild(l); d.appendChild(node);
+  return d;
+}
+function numInput(id, val, min, max, step, ph) {
+  var i = el('input'); i.type = 'number'; i.id = id;
+  i.min = min; i.max = max; if (step) i.step = step;
+  if (ph) i.placeholder = ph;
+  i.value = has(val) ? val : '';
+  return i;
+}
+function textInput(id, val, ph) {
+  var i = el('input'); i.type = 'text'; i.id = id; i.value = val || '';
+  if (ph) i.placeholder = ph;
+  return i;
+}
+function dateInput(id, val) {
+  var i = el('input'); i.type = 'date'; i.id = id; i.value = val || '';
+  return i;
+}
+function checkGroup(items, selected, onChange, critKeys) {
+  var box = el('div', 'checks');
+  items.forEach(function (it) {
+    var name = typeof it === 'string' ? it : it.n;
+    var key = typeof it === 'string' ? it : it.k;
+    var on = selected.indexOf(key) >= 0;
+    var crit = critKeys && (typeof it !== 'string') && it.crit;
+    var lab = el('label', 'chk' + (on ? ' on' : '') + (crit ? ' crit' : ''));
+    var cb = el('input'); cb.type = 'checkbox'; cb.checked = on;
+    cb.addEventListener('change', function () {
+      var i = selected.indexOf(key);
+      if (cb.checked && i < 0) selected.push(key);
+      if (!cb.checked && i >= 0) selected.splice(i, 1);
+      lab.className = 'chk' + (cb.checked ? ' on' : '') + (crit ? ' crit' : '');
+      onChange();
+    });
+    lab.appendChild(cb); lab.appendChild(el('span', '', name));
+    box.appendChild(lab);
+  });
+  return box;
+}
+function triSelect(id, val, labels) {
+  var s = el('select'); s.id = id;
+  [['', '未評估'], ['1', labels[0]], ['0', labels[1]]].forEach(function (o) {
+    var op = el('option', '', o[1]); op.value = o[0];
+    s.appendChild(op);
+  });
+  s.value = val === true ? '1' : val === false ? '0' : '';
+  return s;
+}
+function triVal(s) { return s.value === '1' ? true : s.value === '0' ? false : null; }
+
+function openForm(id) {
+  var c = id ? S.cases.filter(function (x) { return x.id === id; })[0] : blankCase();
+  if (!c) return;
+  var isNew = !id;
+  var draft = JSON.parse(JSON.stringify(c));
+  S.editing = draft;
+
+  var v = $('formView'); clear(v);
+  $('listView').hidden = true; v.hidden = false; window.scrollTo(0, 0);
+
+  var form = el('div', 'form');
+  var scoreBox = el('div', 'scorebar');
+
+  function recalc() {
+    clear(scoreBox);
+    [['BSI', scoreBSI(draft)], ['FACED', scoreFACED(draft)], ['E-FACED', scoreEFACED(draft)]]
+      .forEach(function (p) {
+        var r = p[1];
+        var card = el('div', 'scorecard');
+        card.appendChild(el('div', 'k', p[0]));
+        var val = el('div', 'v num', scoreText(r));
+        var sm = el('small', '', ' / ' + r.max); val.appendChild(sm);
+        card.appendChild(val);
+        if (r.sev) card.appendChild(el('span', 'tag ' + SEVCLS[r.sev], SEVTXT[r.sev]));
+        else card.appendChild(el('div', 'miss', '缺 ' + r.miss.length + ' 項：' + r.miss.join('、')));
+        scoreBox.appendChild(card);
+      });
+  }
+  function bindNum(input, key, transform) {
+    input.addEventListener('input', function () {
+      var raw = input.value;
+      draft[key] = raw === '' ? null : (transform ? transform(parseFloat(raw)) : parseFloat(raw));
+      if (key === 'height' || key === 'weight') autoBMI();
+      recalc();
+    });
+  }
+  function bindText(input, key) {
+    input.addEventListener('input', function () { draft[key] = input.value; });
+  }
+  var bmiInput;
+  function autoBMI() {
+    if (has(draft.height) && has(draft.weight) && draft.height > 0) {
+      var h = draft.height / 100;
+      draft.bmi = Math.round(draft.weight / (h * h) * 10) / 10;
+      bmiInput.value = draft.bmi;
+    }
+  }
+
+  // ── 基本資料 ──
+  var fs1 = el('fieldset'); fs1.appendChild(el('legend', '', '個案識別'));
+  var g1 = el('div', 'fields');
+  var idIn = textInput('f-id', draft.id); idIn.readOnly = true;
+  g1.appendChild(field('個案編號', idIn));
+  var mrnIn = textInput('f-mrn', draft.mrn, '必填');
+  bindText(mrnIn, 'mrn');
+  g1.appendChild(field('病歷號 *', mrnIn));
+  var iniIn = textInput('f-ini', draft.initials, '如 王O明');
+  bindText(iniIn, 'initials');
+  g1.appendChild(field('姓名縮寫', iniIn));
+  var sexSel = el('select'); sexSel.id = 'f-sex';
+  [['', '—'], ['男', '男'], ['女', '女']].forEach(function (o) {
+    var op = el('option', '', o[1]); op.value = o[0]; sexSel.appendChild(op);
+  });
+  sexSel.value = draft.sex || '';
+  sexSel.addEventListener('change', function () { draft.sex = sexSel.value; });
+  g1.appendChild(field('性別', sexSel));
+  var ageIn = numInput('f-age', draft.age, 0, 120);
+  bindNum(ageIn, 'age');
+  g1.appendChild(field('年齡（歲）', ageIn));
+  var dxIn = dateInput('f-dx', draft.dxDate);
+  dxIn.addEventListener('change', function () { draft.dxDate = dxIn.value; });
+  g1.appendChild(field('診斷確立日期', dxIn));
+  fs1.appendChild(g1);
+  var etiWrap = el('div', 'f wide');
+  etiWrap.appendChild(el('label', '', '病因'));
+  etiWrap.appendChild(checkGroup(ETIOLOGY, draft.etiology, function () {}));
+  fs1.appendChild(etiWrap);
+  form.appendChild(fs1);
+
+  // ── 即時評分 ──
+  var fsS = el('fieldset'); fsS.appendChild(el('legend', '', '嚴重度評分（隨輸入即時重算）'));
+  fsS.appendChild(scoreBox);
+  fsS.appendChild(el('div', 'note',
+    'BSI 使用 MRC 1–5 量表，本表輸入 mMRC 0–4，換算時自動 +1。任何項目未填就只顯示下限並不給分級。'));
+  form.appendChild(fsS);
+
+  // ── 生理與肺功能 ──
+  var fs2 = el('fieldset'); fs2.appendChild(el('legend', '', '體位與肺功能'));
+  var g2 = el('div', 'fields');
+  var htIn = numInput('f-ht', draft.height, 80, 230, 0.1); bindNum(htIn, 'height');
+  g2.appendChild(field('身高 (cm)', htIn));
+  var wtIn = numInput('f-wt', draft.weight, 20, 250, 0.1); bindNum(wtIn, 'weight');
+  g2.appendChild(field('體重 (kg)', wtIn));
+  bmiInput = numInput('f-bmi', draft.bmi, 8, 70, 0.1, '自動換算');
+  bindNum(bmiInput, 'bmi');
+  g2.appendChild(field('BMI (kg/m²)', bmiInput));
+  var fev = numInput('f-fev', draft.fev1, 5, 200, 0.1); bindNum(fev, 'fev1');
+  g2.appendChild(field('FEV₁ % predicted', fev));
+  var fvc = numInput('f-fvc', draft.fvc, 5, 200, 0.1); bindNum(fvc, 'fvc');
+  g2.appendChild(field('FVC % predicted', fvc));
+  var rat = numInput('f-ratio', draft.ratio, 5, 120, 0.1); bindNum(rat, 'ratio');
+  g2.appendChild(field('FEV₁/FVC (%)', rat));
+  fs2.appendChild(g2);
+  form.appendChild(fs2);
+
+  // ── 症狀與病程 ──
+  var fs3 = el('fieldset'); fs3.appendChild(el('legend', '', '症狀與病程'));
+  var g3 = el('div', 'fields');
+  var mmrcSel = el('select'); mmrcSel.id = 'f-mmrc';
+  [['', '未評估'], ['0', '0 劇烈運動才喘'], ['1', '1 快走或上坡喘'], ['2', '2 平地走比同齡慢'],
+   ['3', '3 走約 100 公尺需休息'], ['4', '4 稍動即喘 / 無法出門']].forEach(function (o) {
+    var op = el('option', '', o[1]); op.value = o[0]; mmrcSel.appendChild(op);
+  });
+  mmrcSel.value = has(draft.mmrc) ? String(draft.mmrc) : '';
+  mmrcSel.addEventListener('change', function () {
+    draft.mmrc = mmrcSel.value === '' ? null : parseInt(mmrcSel.value, 10); recalc();
+  });
+  g3.appendChild(field('mMRC 呼吸困難分級', mmrcSel));
+  var exac = numInput('f-exac', draft.exac1y, 0, 30); bindNum(exac, 'exac1y');
+  g3.appendChild(field('近 1 年急性發作次數', exac));
+  var sev = numInput('f-sev', draft.sevExac1y, 0, 20); bindNum(sev, 'sevExac1y');
+  g3.appendChild(field('近 1 年因發作住院次數', sev));
+  var adm = triSelect('f-adm', draft.admit2y, ['是', '否']);
+  adm.addEventListener('change', function () { draft.admit2y = triVal(adm); recalc(); });
+  g3.appendChild(field('近 2 年曾因呼吸道住院', adm));
+  var sput = textInput('f-sput', draft.sputum, '如 半杯 / 30 mL 膿痰');
+  bindText(sput, 'sputum');
+  g3.appendChild(field('每日痰量與性狀', sput));
+  var hemoSel = triSelect('f-hemo', draft.hemoptysis === true ? true : (draft.hemoptysis === false ? false : null), ['有', '無']);
+  hemoSel.addEventListener('change', function () { draft.hemoptysis = triVal(hemoSel); });
+  g3.appendChild(field('咳血 / 血痰', hemoSel));
+  fs3.appendChild(g3);
+  form.appendChild(fs3);
+
+  // ── 影像 ──
+  var fs4 = el('fieldset'); fs4.appendChild(el('legend', '', '影像 (HRCT)'));
+  var lobeWrap = el('div', 'f wide');
+  lobeWrap.appendChild(el('label', '', '侵犯肺葉（≥3 葉或囊狀型在 BSI 計 1 分）'));
+  lobeWrap.appendChild(checkGroup(LOBES, draft.lobes, recalc));
+  fs4.appendChild(lobeWrap);
+  var mWrap = el('div', 'f wide');
+  mWrap.appendChild(el('label', '', '型態'));
+  mWrap.appendChild(checkGroup(MORPH, draft.morph, recalc));
+  fs4.appendChild(mWrap);
+  form.appendChild(fs4);
+
+  // ── 微生物 ──
+  var fs5 = el('fieldset'); fs5.appendChild(el('legend', '', '痰液微生物'));
+  var oWrap = el('div', 'f wide');
+  oWrap.appendChild(el('label', '', '曾培養出的菌種'));
+  oWrap.appendChild(checkGroup(ORGS, draft.orgs, function () {}, true));
+  fs5.appendChild(oWrap);
+  var g5 = el('div', 'fields');
+  var paSel = triSelect('f-pa', draft.chronicPA, ['是', '否']);
+  paSel.addEventListener('change', function () { draft.chronicPA = triVal(paSel); recalc(); });
+  g5.appendChild(field('綠膿桿菌慢性定殖', paSel));
+  var ocSel = triSelect('f-oc', draft.chronicOther, ['是', '否']);
+  ocSel.addEventListener('change', function () { draft.chronicOther = triVal(ocSel); recalc(); });
+  g5.appendChild(field('其他致病菌慢性定殖', ocSel));
+  fs5.appendChild(g5);
+  fs5.appendChild(el('div', 'note',
+    '慢性定殖定義：同一菌種於 1 年內 ≥2 次陽性且間隔 ≥3 個月。未做過培養請留「未評估」，不要填「否」。'));
+  form.appendChild(fs5);
+
+  // ── 治療 ──
+  var fs6 = el('fieldset'); fs6.appendChild(el('legend', '', '目前治療'));
+  var tWrap = el('div', 'f wide');
+  tWrap.appendChild(checkGroup(TREAT, draft.treat, function () {}));
+  fs6.appendChild(tWrap);
+  form.appendChild(fs6);
+
+  // ── 追蹤紀錄 ──
+  var fs7 = el('fieldset'); fs7.appendChild(el('legend', '', '追蹤紀錄'));
+  var fuWrap = el('div');
+  function renderFU() {
+    clear(fuWrap);
+    var wrapT = el('div', 'tablewrap');
+    var t = el('table', 'fu');
+    var thead = el('thead'), htr = el('tr');
+    ['日期', 'FEV₁ %', '發作次數', '備註', ''].forEach(function (h) { htr.appendChild(el('th', '', h)); });
+    thead.appendChild(htr); t.appendChild(thead);
+    var tb = el('tbody');
+    draft.followups.forEach(function (f, i) {
+      var tr = el('tr');
+      var d = dateInput('fu-d-' + i, f.date);
+      d.addEventListener('change', function () { f.date = d.value; });
+      var c1 = el('td'); c1.appendChild(d); tr.appendChild(c1);
+      var fv = numInput('fu-f-' + i, f.fev1, 5, 200, 0.1);
+      fv.addEventListener('input', function () { f.fev1 = fv.value === '' ? null : parseFloat(fv.value); });
+      var c2 = el('td'); c2.appendChild(fv); tr.appendChild(c2);
+      var ex = numInput('fu-e-' + i, f.exac, 0, 30);
+      ex.addEventListener('input', function () { f.exac = ex.value === '' ? null : parseFloat(ex.value); });
+      var c3 = el('td'); c3.appendChild(ex); tr.appendChild(c3);
+      var nt = textInput('fu-n-' + i, f.note);
+      nt.addEventListener('input', function () { f.note = nt.value; });
+      var c4 = el('td'); c4.appendChild(nt); tr.appendChild(c4);
+      var rm = el('button', 'ghost', '移除');
+      rm.addEventListener('click', function () { draft.followups.splice(i, 1); renderFU(); });
+      var c5 = el('td'); c5.appendChild(rm); tr.appendChild(c5);
+      tb.appendChild(tr);
+    });
+    t.appendChild(tb);
+    wrapT.appendChild(t);
+    if (draft.followups.length) fuWrap.appendChild(wrapT);
+    else fuWrap.appendChild(el('div', 'note', '尚無追蹤紀錄。'));
+    var add = el('button', '', '新增一次追蹤');
+    add.style.marginTop = '.6rem';
+    add.addEventListener('click', function () {
+      draft.followups.push({ date: today(), fev1: null, exac: null, note: '' });
+      renderFU();
+    });
+    fuWrap.appendChild(add);
+  }
+  renderFU();
+  fs7.appendChild(fuWrap);
+  form.appendChild(fs7);
+
+  // ── 討論 ──
+  var fs8 = el('fieldset'); fs8.appendChild(el('legend', '', '討論紀錄'));
+  var g8 = el('div', 'fields');
+  var disc = el('textarea'); disc.id = 'f-disc'; disc.value = draft.discussion || '';
+  disc.placeholder = '本次討論的重點、鑑別診斷、爭議處';
+  disc.addEventListener('input', function () { draft.discussion = disc.value; });
+  g8.appendChild(field('討論重點', disc, true));
+  var dec = el('textarea'); dec.id = 'f-dec'; dec.value = draft.decision || '';
+  dec.placeholder = '治療方向、檢查安排、轉介決定';
+  dec.addEventListener('input', function () { draft.decision = dec.value; });
+  g8.appendChild(field('決議', dec, true));
+  var todo = textInput('f-todo', draft.todo, '如 安排痰液分枝桿菌培養');
+  bindText(todo, 'todo');
+  g8.appendChild(field('待辦事項', todo));
+  var nv = dateInput('f-nv', draft.nextVisit);
+  nv.addEventListener('change', function () { draft.nextVisit = nv.value; });
+  g8.appendChild(field('下次追蹤日期', nv));
+  fs8.appendChild(g8);
+  form.appendChild(fs8);
+
+  v.appendChild(form);
+
+  // ── 底部操作列 ──
+  var bar = el('div', 'formbar');
+  var save = el('button', 'primary', isNew ? '建立個案' : '儲存變更');
+  var cancel = el('button', '', '取消');
+  bar.appendChild(save); bar.appendChild(cancel);
+  bar.appendChild(el('div', 'grow'));
+  if (!isNew) {
+    var del = el('button', 'danger', '刪除此個案');
+    del.addEventListener('click', function () {
+      confirmDialog('刪除 ' + draft.id + '？', '這筆個案紀錄會永久移除，無法復原。', '刪除', true)
+        .then(function (ok) {
+          if (!ok) return;
+          S.cases = S.cases.filter(function (x) { return x.id !== draft.id; });
+          markDirty(); closeForm(); toast('已刪除 ' + draft.id);
+        });
+    });
+    bar.appendChild(del);
+  }
+  v.appendChild(bar);
+
+  save.addEventListener('click', function () {
+    if (!draft.mrn || !draft.mrn.trim()) {
+      toast('請填入病歷號'); mrnIn.focus(); return;
+    }
+    var dup = S.cases.filter(function (x) {
+      return x.id !== draft.id && x.mrn && x.mrn.trim() === draft.mrn.trim();
+    })[0];
+    function commit() {
+      draft.updated = nowStamp();
+      if (S.demo) { S.cases = []; S.demo = false; }
+      var i = -1;
+      S.cases.forEach(function (x, ix) { if (x.id === draft.id) i = ix; });
+      if (i >= 0) S.cases[i] = draft; else S.cases.unshift(draft);
+      S.cases.sort(function (a, b) { return (b.updated || '').localeCompare(a.updated || ''); });
+      markDirty(); closeForm(); toast(isNew ? '已建立 ' + draft.id : '已儲存 ' + draft.id);
+    }
+    if (dup) {
+      confirmDialog('病歷號重複', '個案 ' + dup.id + ' 也使用這個病歷號。仍要繼續嗎？', '繼續')
+        .then(function (ok) { if (ok) commit(); });
+    } else commit();
+  });
+  cancel.addEventListener('click', closeForm);
+  recalc();
+  if (isNew) mrnIn.focus();
+}
+
+function closeForm() {
+  S.editing = null;
+  $('formView').hidden = true; clear($('formView'));
+  $('listView').hidden = false;
+  render();
+  window.scrollTo(0, 0);
+}
+
+/* ═══ 儲存 ══════════════════════════════════════════════ */
+function markDirty() {
+  S.dirty = true;
+  updateStoreTag();
+  if (S.mode === 'stored' && S.key && lsOK) persist();
+}
+function persist() {
+  if (!S.key) return Promise.resolve(false);
+  return encryptJSON(S.key, { cases: S.cases, savedAt: new Date().toISOString() })
+    .then(function (envlp) {
+      var ok = lsSet({ v: 1, salt: b64(S.salt), iter: ITER, env: envlp });
+      if (ok) { S.dirty = false; updateStoreTag(); }
+      return ok;
+    });
+}
+function updateStoreTag() {
+  var t = $('storeTag');
+  t.hidden = false;
+  if (S.mode === 'ephemeral') { t.className = 'tag tag-warn'; t.textContent = '只用這次 · 不儲存'; }
+  else if (S.dirty) { t.className = 'tag tag-warn'; t.textContent = '有未儲存變更'; }
+  else { t.className = 'tag tag-ok'; t.textContent = S.mode === 'stored' ? '已加密儲存' : '已同步'; }
+}
+
+function saveToFile() {
+  if (!S.key) {
+    toast('此模式未設密碼，無法產生加密檔');
+    return;
+  }
+  encryptJSON(S.key, { cases: S.cases, savedAt: new Date().toISOString() }).then(function (envlp) {
+    var payload = JSON.stringify({
+      format: 'bronchiectasis-registry/1', encrypted: 'AES-256-GCM',
+      kdf: 'PBKDF2-SHA256', iter: ITER, salt: b64(S.salt), env: envlp,
+      note: '此檔案已加密，需原密碼才能開啟。'
+    }, null, 2);
+    var name = 'be-registry-' + today() + '.json';
+    S.dirty = false; updateStoreTag();
+    textDialog('加密備份檔', '內容已用你的密碼加密。可直接下載；若此環境不允許下載，請複製下方文字自行存成 ' +
+      name + '。', payload, name);
+  });
+}
+
+function exportCSV() {
+  var head = ['個案編號', '年齡', '性別', 'BMI', 'FEV1%pred', 'mMRC', '近1年發作', '近1年住院',
+    '近2年住院', '肺葉數', '囊狀', 'PA定殖', '其他定殖', 'BSI', 'BSI分級', 'FACED', 'FACED分級',
+    'E-FACED', 'E-FACED分級', '病因', '治療', '下次追蹤'];
+  var rows = [head];
+  S.cases.forEach(function (c) {
+    var b = scoreBSI(c), f = scoreFACED(c), e = scoreEFACED(c);
+    rows.push([c.id, c.age, c.sex, c.bmi, c.fev1, c.mmrc, c.exac1y, c.sevExac1y,
+      c.admit2y === true ? '是' : c.admit2y === false ? '否' : '',
+      c.lobes.length, c.morph.indexOf(MORPH[2]) >= 0 ? '是' : '否',
+      c.chronicPA === true ? '是' : c.chronicPA === false ? '否' : '',
+      c.chronicOther === true ? '是' : c.chronicOther === false ? '否' : '',
+      b.sev ? b.pts : '', b.sev ? SEVTXT[b.sev] : '資料不足',
+      f.sev ? f.pts : '', f.sev ? SEVTXT[f.sev] : '資料不足',
+      e.sev ? e.pts : '', e.sev ? SEVTXT[e.sev] : '資料不足',
+      c.etiology.join(' / '), c.treat.join(' / '), c.nextVisit]);
+  });
+  // Excel 公式注入防護：以 = + - @ 開頭的值前面加單引號
+  var csv = rows.map(function (r) {
+    return r.map(function (cell) {
+      var s = (cell === null || cell === undefined) ? '' : String(cell);
+      if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
+      return '"' + s.replace(/"/g, '""') + '"';
+    }).join(',');
+  }).join('\r\n');
+  var text = '﻿' + csv;   // BOM，Excel 才認得 UTF-8
+  textDialog('去識別 CSV', '已移除病歷號與姓名，只保留個案編號與臨床欄位。可直接下載或複製。',
+    text, 'be-registry-deid-' + today() + '.csv');
+}
+
+/* ═══ 開啟 / 解鎖 ═══════════════════════════════════════ */
+function startApp(mode) {
+  S.mode = mode;
+  $('gate').hidden = true;
+  $('app').hidden = false;
+  $('foot').hidden = false;
+  $('barActions').hidden = false;
+  updateStoreTag();
+  render();
+  resetIdle();
+}
+function render() { renderStats(); renderList(); }
+
+function loadDemo() {
+  S.demo = true;
+  S.cases = [
+    { id: 'BE-001', mrn: '範例-A', initials: '王O明', sex: '男', age: 72, dxDate: '2019-03-11',
+      etiology: ['感染後 / 結核後'], lobes: ['RLL', 'LLL', 'Lingula'], morph: ['囊狀 cystic'],
+      fev1: 44, fvc: 66, ratio: 52, height: 168, weight: 50.2, bmi: 17.8,
+      mmrc: 3, sputum: '半杯膿痰', hemoptysis: true,
+      exac1y: 4, sevExac1y: 1, admit2y: true,
+      orgs: ['PA'], chronicPA: true, chronicOther: false,
+      treat: ['長期 macrolide', '吸入性抗生素', '氣道清潔 / 呼吸物理治療'],
+      discussion: '反覆綠膿桿菌感染，近一年四次發作。', decision: '加開吸入性 colistin，三個月後評估。',
+      todo: '追蹤 NTM 培養結果', nextVisit: '2026-12-15',
+      followups: [{ date: '2026-03-10', fev1: 48, exac: 2, note: '' },
+                  { date: '2026-09-08', fev1: 44, exac: 2, note: '換吸入抗生素' }],
+      updated: '2026-09-08 10:20' },
+    { id: 'BE-002', mrn: '範例-B', initials: '陳O華', sex: '女', age: 58, dxDate: '2023-07-02',
+      etiology: ['不明'], lobes: ['RML'], morph: ['柱狀 cylindrical'],
+      fev1: 82, fvc: 90, ratio: 74, height: 156.5, weight: 61.6, bmi: 25.2,
+      mmrc: 1, sputum: '少量', hemoptysis: false,
+      exac1y: 1, sevExac1y: 0, admit2y: false,
+      orgs: [], chronicPA: false, chronicOther: false,
+      treat: ['氣道清潔 / 呼吸物理治療', '流感 / 肺炎鏈球菌疫苗'],
+      discussion: '單葉輕度，症狀穩定。', decision: '維持氣道清潔，一年後追蹤 HRCT。',
+      todo: '', nextVisit: '2027-09-01', followups: [], updated: '2026-09-01 14:05' }
+  ];
+}
+
+/* ═══ 閒置自動鎖定 ══════════════════════════════════════ */
+var IDLE_MS = 15 * 60 * 1000;
+function resetIdle() {
+  if (S.idleTimer) clearTimeout(S.idleTimer);
+  if (S.mode !== 'stored') return;
+  S.idleTimer = setTimeout(function () { lock(true); }, IDLE_MS);
+}
+function lock(auto) {
+  function doLock() {
+    S.key = null; S.cases = []; S.editing = null; S.salt = null;
+    $('app').hidden = true; $('foot').hidden = true; $('barActions').hidden = true;
+    $('formView').hidden = true; clear($('formView')); $('listView').hidden = false;
+    $('gate').hidden = false;
+    $('storeTag').hidden = true;
+    refreshGate();
+    if (auto) toast('閒置逾時，已自動鎖定');
+  }
+  if (!auto && S.dirty && S.mode !== 'stored') {
+    confirmDialog('尚未儲存', '還有未存成加密檔的變更，鎖定後會消失。確定要鎖定嗎？', '仍要鎖定', true)
+      .then(function (ok) { if (ok) doLock(); });
+  } else doLock();
+}
+['click', 'keydown', 'scroll'].forEach(function (evt) {
+  window.addEventListener(evt, function () { if (S.mode === 'stored') resetIdle(); }, { passive: true });
+});
+
+/* ═══ 起始畫面邏輯 ══════════════════════════════════════ */
+function refreshGate() {
+  var existing = lsOK ? lsGet() : null;
+  $('optUnlock').hidden = !existing;
+  $('pwErr').hidden = true; $('unlockErr').hidden = true;
+  $('pw1').value = ''; $('pw2').value = ''; $('pwUnlock').value = '';
+  if (existing) {
+    $('unlockDesc').textContent = '這個瀏覽器裡已有加密的登錄簿，最後儲存於 ' +
+      (existing.env ? '（需密碼才能讀取內容）' : '');
+  }
+  var note = $('storeNote');
+  if (!SUBTLE) {
+    $('optStore').className = 'opt off';
+    $('btnSetPw').disabled = true;
+    note.textContent = '此瀏覽器不提供 WebCrypto，無法加密。';
+  } else if (!lsOK) {
+    note.textContent = '此環境不支援瀏覽器儲存（用 file:// 開啟時 Chrome 會停用），將改以加密檔保存。';
+  } else {
+    note.textContent = '會自動存進這個瀏覽器，也可另存加密檔。';
+  }
+}
+
+$('btnSetPw').addEventListener('click', function () {
+  var p1 = $('pw1').value, p2 = $('pw2').value, err = $('pwErr');
+  if (p1.length < 8) { err.hidden = false; err.textContent = '密碼至少 8 個字元。'; return; }
+  if (p1 !== p2) { err.hidden = false; err.textContent = '兩次輸入的密碼不一致。'; return; }
+  err.hidden = true;
+  $('btnSetPw').disabled = true; $('btnSetPw').textContent = '建立中…';
+  S.salt = crypto.getRandomValues(new Uint8Array(16));
+  deriveKey(p1, S.salt).then(function (k) {
+    S.key = k; S.cases = []; S.demo = false;
+    $('btnSetPw').disabled = false; $('btnSetPw').textContent = '建立登錄簿';
+    startApp(lsOK ? 'stored' : 'file');
+    if (lsOK) persist();
+    toast('登錄簿已建立');
+  }).catch(function (e) {
+    $('btnSetPw').disabled = false; $('btnSetPw').textContent = '建立登錄簿';
+    err.hidden = false; err.textContent = '建立失敗：' + e.message;
+  });
+});
+
+$('btnUnlock').addEventListener('click', function () {
+  var rec = lsGet(), err = $('unlockErr');
+  if (!rec) { err.hidden = false; err.textContent = '找不到已儲存的登錄簿。'; return; }
+  var pw = $('pwUnlock').value;
+  if (!pw) { err.hidden = false; err.textContent = '請輸入密碼。'; return; }
+  err.hidden = true;
+  $('btnUnlock').disabled = true; $('btnUnlock').textContent = '解鎖中…';
+  var salt = unb64(rec.salt);
+  deriveKey(pw, salt).then(function (k) {
+    return decryptJSON(k, rec.env).then(function (data) {
+      S.key = k; S.salt = salt; S.cases = data.cases || []; S.demo = false;
+      $('btnUnlock').disabled = false; $('btnUnlock').textContent = '解鎖';
+      startApp('stored');
+      toast('已解鎖，共 ' + S.cases.length + ' 案');
+    });
+  }).catch(function () {
+    $('btnUnlock').disabled = false; $('btnUnlock').textContent = '解鎖';
+    err.hidden = false; err.textContent = '密碼錯誤，或資料已損毀。';
+  });
+});
+
+$('btnOpenFile').addEventListener('click', function () { $('fileIn').click(); });
+$('fileIn').addEventListener('change', function () {
+  var f = $('fileIn').files[0];
+  if (!f) return;
+  f.text().then(function (txt) {
+    var rec;
+    try { rec = JSON.parse(txt); } catch (e) { toast('不是有效的 JSON 檔'); return; }
+    if (!rec.env || !rec.salt) { toast('這不是本工具產生的加密備份檔'); return; }
+    askPassword(rec);
+  });
+  $('fileIn').value = '';
+});
+
+function askPassword(rec) {
+  var scrim = el('div', 'scrim');
+  var d = el('div', 'dialog');
+  d.appendChild(el('h3', '', '開啟加密備份'));
+  d.appendChild(el('p', '', '請輸入這個檔案的密碼。'));
+  var inp = el('input'); inp.type = 'password'; inp.placeholder = '密碼';
+  inp.autocomplete = 'current-password';
+  d.appendChild(inp);
+  var msg = el('div', 'err'); msg.hidden = true; d.appendChild(msg);
+  var acts = el('div', 'acts'); acts.style.marginTop = '.9rem';
+  var cancel = el('button', '', '取消');
+  var ok = el('button', 'primary', '開啟');
+  acts.appendChild(cancel); acts.appendChild(ok); d.appendChild(acts);
+  scrim.appendChild(d); document.body.appendChild(scrim);
+  inp.focus();
+  function close() { document.body.removeChild(scrim); }
+  cancel.addEventListener('click', close);
+  function go() {
+    ok.disabled = true; ok.textContent = '開啟中…';
+    var salt = unb64(rec.salt);
+    deriveKey(inp.value, salt).then(function (k) {
+      return decryptJSON(k, rec.env).then(function (data) {
+        S.key = k; S.salt = salt; S.cases = data.cases || []; S.demo = false;
+        close();
+        startApp(lsOK ? 'stored' : 'file');
+        if (lsOK) persist();
+        toast('已載入 ' + S.cases.length + ' 案');
+      });
+    }).catch(function () {
+      ok.disabled = false; ok.textContent = '開啟';
+      msg.hidden = false; msg.textContent = '密碼錯誤，或檔案已損毀。';
+    });
+  }
+  ok.addEventListener('click', go);
+  inp.addEventListener('keydown', function (e) { if (e.key === 'Enter') go(); });
+}
+
+$('btnEphemeral').addEventListener('click', function () {
+  S.key = null; S.salt = null;
+  loadDemo();
+  startApp('ephemeral');
+});
+
+/* ═══ 主畫面操作 ════════════════════════════════════════ */
+$('btnNew').addEventListener('click', function () { openForm(null); });
+$('btnSaveFile').addEventListener('click', saveToFile);
+$('btnExport').addEventListener('click', function () {
+  if (!S.cases.length) { toast('目前沒有個案可匯出'); return; }
+  exportCSV();
+});
+$('btnLock').addEventListener('click', function () { lock(false); });
+$('btnReveal').addEventListener('click', function () { S.reveal = !S.reveal; renderList(); });
+$('btnClearDemo').addEventListener('click', function () {
+  S.cases = []; S.demo = false; render(); toast('範例已清除');
+});
+
+window.addEventListener('beforeunload', function (e) {
+  if (S.dirty && S.mode !== 'stored') { e.preventDefault(); e.returnValue = ''; }
+});
+
+/* ═══ 零外連自我驗證 ════════════════════════════════════ */
+window.addEventListener('load', function () {
+  var ext = 0;
+  try {
+    ext = performance.getEntriesByType('resource').filter(function (r) {
+      return r.name.indexOf('data:') !== 0 && r.name !== location.href;
+    }).length;
+  } catch (e) { ext = -1; }
+  var t = $('netTag');
+  if (ext === 0) { t.className = 'tag tag-ok'; t.textContent = '● 零外連：0 個外部請求'; }
+  else { t.className = 'tag tag-crit'; t.textContent = '⚠ 偵測到 ' + ext + ' 個外部請求'; }
+});
+
+refreshGate();
+
+window.__REG__ = { S: S, scoreBSI: scoreBSI, scoreFACED: scoreFACED, scoreEFACED: scoreEFACED,
+                   openForm: openForm, render: render, loadDemo: loadDemo, startApp: startApp };
+
+})();
+</script>
+</body>
+</html>

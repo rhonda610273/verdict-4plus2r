@@ -19,9 +19,13 @@ import re
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent
-SRC = ROOT / "src" / "app.html"
 VENDOR = ROOT / "vendor"
-OUT = ROOT.parent / "bronchiectasis-dashboard.html"
+
+TARGETS = [
+    # (原始檔, 產出檔, 是否內嵌 pdf.js + cmaps)
+    ("app.html", "bronchiectasis-dashboard.html", True),
+    ("registry.html", "bronchiectasis-registry.html", False),
+]
 
 
 def inline_safe(js: str) -> str:
@@ -29,28 +33,30 @@ def inline_safe(js: str) -> str:
     return js.replace("</script", "<\\/script").replace("<!--", "<\\!--")
 
 
-def build() -> int:
-    html = SRC.read_text(encoding="utf-8")
-
-    # ── 1. 內嵌 cmaps ──────────────────────────────────────────────
+def build_one(src_name: str, out_name: str, with_pdfjs: bool) -> int:
+    html = (ROOT / "src" / src_name).read_text(encoding="utf-8")
+    OUT = ROOT.parent / out_name
     cmaps = {}
-    for p in sorted((VENDOR / "cmaps").glob("*.bcmap")):
-        cmaps[p.stem] = base64.b64encode(p.read_bytes()).decode("ascii")
-    cmap_js = "window.__CMAPS__={" + ",".join(
-        '"%s":"%s"' % (k, v) for k, v in cmaps.items()
-    ) + "};"
-    html = html.replace("/*__CMAPS__*/", cmap_js, 1)
 
-    # ── 2. 內嵌 pdf.js ─────────────────────────────────────────────
-    for token, fname in (
-        ("/*__PDFJS_WORKER__*/", "pdf.worker.min.js"),
-        ("/*__PDFJS_LIB__*/", "pdf.min.js"),
-    ):
-        src = (VENDOR / fname).read_text(encoding="utf-8")
-        if token not in html:
-            print("build: 找不到佔位符 %s" % token, file=sys.stderr)
-            return 1
-        html = html.replace(token, inline_safe(src), 1)
+    if with_pdfjs:
+        # ── 1. 內嵌 cmaps ──────────────────────────────────────────
+        for p in sorted((VENDOR / "cmaps").glob("*.bcmap")):
+            cmaps[p.stem] = base64.b64encode(p.read_bytes()).decode("ascii")
+        cmap_js = "window.__CMAPS__={" + ",".join(
+            '"%s":"%s"' % (k, v) for k, v in cmaps.items()
+        ) + "};"
+        html = html.replace("/*__CMAPS__*/", cmap_js, 1)
+
+        # ── 2. 內嵌 pdf.js ─────────────────────────────────────────
+        for token, fname in (
+            ("/*__PDFJS_WORKER__*/", "pdf.worker.min.js"),
+            ("/*__PDFJS_LIB__*/", "pdf.min.js"),
+        ):
+            src = (VENDOR / fname).read_text(encoding="utf-8")
+            if token not in html:
+                print("build: 找不到佔位符 %s" % token, file=sys.stderr)
+                return 1
+            html = html.replace(token, inline_safe(src), 1)
 
     # ── 3. 依實際內容計算 CSP hash ─────────────────────────────────
     def hashes(tag: str) -> list:
@@ -92,10 +98,11 @@ def build() -> int:
 
     OUT.write_text(html, encoding="utf-8")
 
-    size_mb = OUT.stat().st_size / 1024 / 1024
-    print("build: %s" % OUT)
-    print("  大小        : %.2f MB" % size_mb)
-    print("  cmaps       : %d 個" % len(cmaps))
+    size_kb = OUT.stat().st_size / 1024
+    print("build: %s" % OUT.name)
+    print("  大小        : %s" % ("%.2f MB" % (size_kb / 1024) if size_kb > 900 else "%.0f KB" % size_kb))
+    if with_pdfjs:
+        print("  cmaps       : %d 個" % len(cmaps))
     print("  script hash : %d 個" % len(script_hashes))
     print("  style hash  : %d 個" % len(style_hashes))
 
@@ -109,6 +116,14 @@ def build() -> int:
         print("  ⚠ 發現外部資源參照：%s" % ", ".join(sorted(set(leaks))[:5]), file=sys.stderr)
         return 1
     print("  外部資源    : 0 ✓")
+    return 0
+
+
+def build() -> int:
+    for src_name, out_name, with_pdfjs in TARGETS:
+        rc = build_one(src_name, out_name, with_pdfjs)
+        if rc:
+            return rc
     return 0
 
 
