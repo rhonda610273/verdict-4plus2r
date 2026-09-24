@@ -105,6 +105,15 @@ svg{display:block;width:100%;height:auto;overflow:visible}
 .mt-sm{margin-top:.6rem}
 .mt-md{margin-top:1rem}
 .decline{color:var(--orange)}
+.banner{margin-top:1rem;border:1px solid #7c2d12;background:#2a1508;border-radius:11px;padding:1rem 1.15rem}
+.banner h4{color:#fdba74;font-size:.95rem;margin-bottom:.45rem}
+.banner p{font-size:.85rem;color:#fed7aa;margin-bottom:.4rem}
+.banner ul{font-size:.83rem;color:#fdba74;padding-left:1.25rem;line-height:1.75}
+.banner .files{font-size:.8rem;color:#fff;font-family:ui-monospace,Menlo,monospace;margin:.35rem 0 .6rem}
+.rawhead{font-size:.78rem;color:var(--accent);font-weight:700;margin:.7rem 0 .25rem}
+.rawtext{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.72rem;line-height:1.55;
+  color:var(--muted);background:#10131f;border:1px solid var(--border);border-radius:7px;
+  padding:.6rem .7rem;white-space:pre-wrap;word-break:break-all;max-height:300px;overflow:auto;user-select:text}
 
 @media print{
   :root{--bg:#fff;--surface:#fff;--surface2:#fff;--border:#c9cfdb;--text:#111;--muted:#444;--faint:#666}
@@ -147,6 +156,7 @@ svg{display:block;width:100%;height:auto;overflow:visible}
   </section>
 
   <div class="log noprint" id="log" hidden></div>
+  <div class="banner noprint" id="banner" hidden></div>
 
   <div id="dash" hidden>
 
@@ -211,6 +221,15 @@ svg{display:block;width:100%;height:auto;overflow:visible}
         <h3 class="mt-md">影像 / 其他發現</h3>
         <div id="findings"></div>
       </div>
+    </div>
+
+    <div class="card mt-md noprint" id="rawCard">
+      <h3>原始擷取文字 — 診斷用</h3>
+      <div id="rawInfo"></div>
+      <button id="btnSelectRaw" class="mt-sm">全選文字</button>
+      <div id="raw"></div>
+      <div class="note">這是 pdf.js 從你的 PDF 抽出的原始文字。若這裡是空的 → PDF 沒有文字圖層（掃描件）；
+        若看得到文字但上方參數大量「待補」→ 是擷取規則沒對上你們的病歷格式，把這段（去識別化後）給開發者即可調整。</div>
     </div>
 
     <div class="card mt-md" id="provCard">
@@ -459,7 +478,7 @@ var LOBES = [
 
 /* ── 單一文件擷取 ──────────────────────────────────────────────── */
 function extractDoc(doc) {
-  var r = { file: doc.name, pages: doc.pages, lines: doc.lines.length, fields: {}, organisms: [],
+  var r = { file: doc.name, pages: doc.pages, lines: doc.lines.length, rawLines: doc.lines, fields: {}, organisms: [],
             meds: [], lobes: [], findings: [], dates: [] };
   var F = r.fields;
 
@@ -624,6 +643,8 @@ function extractDoc(doc) {
    ══════════════════════════════════════════════════════════════════ */
 var STATE = {
   docs: [],        // 原始擷取結果
+  noText: [],      // 抽不到文字的檔（掃描件）
+  manualMode: false, // 無可解析檔案時，仍開啟儀錶板供人工填寫
   params: {},      // 評分參數：{value, src, manual}
   unmasked: false
 };
@@ -1246,6 +1267,67 @@ function renderProv() {
   });
 }
 
+function renderBanner() {
+  var box = document.getElementById('banner');
+  clear(box);
+  if (!STATE.noText.length) { box.hidden = true; return; }
+  box.hidden = false;
+  box.appendChild(el('h4', '', '這 ' + STATE.noText.length + ' 份 PDF 抽不到任何文字'));
+  var names = STATE.noText.map(function (f) { return f.name + '（' + f.pages + ' 頁）'; }).join('　');
+  box.appendChild(el('div', 'files', names));
+  box.appendChild(el('p', '', '這表示這些 PDF 裡沒有文字圖層，整頁是一張圖片（掃描器掃紙本、用手機拍照轉 PDF、' +
+    '或某些 HIS 系統直接輸出影像）。任何不含 OCR 的工具都讀不到，這不是設定問題。'));
+  var ul = el('ul');
+  [
+    '怎麼確認：用 PDF 閱讀器打開，試著用滑鼠圈選文字。選不起來 = 影像檔。',
+    '最好的解法：回 HIS / 病歷系統用「列印 → 另存為 PDF」重新輸出，這樣產生的 PDF 會帶文字圖層。',
+    '若只能拿到掃描件：需要 OCR。本工具為了控制檔案大小與攻擊面，目前沒有內建 OCR。',
+    '暫時作法：上方「評分輸入參數」每一欄都能直接手動填入，照樣能算出 BSI / FACED / E-FACED 並列印。'
+  ].forEach(function (t) { ul.appendChild(el('li', '', t)); });
+  box.appendChild(ul);
+  if (!STATE.docs.length && !STATE.manualMode) {
+    var btn = el('button', 'primary', '改用手動輸入模式（空白表單）');
+    btn.addEventListener('click', function () {
+      STATE.manualMode = true;
+      buildParams();
+      refresh();
+      document.getElementById('paramTbl').scrollIntoView({ block: 'center' });
+    });
+    box.appendChild(btn);
+  }
+}
+
+function renderRaw() {
+  var box = document.getElementById('raw');
+  var info = document.getElementById('rawInfo');
+  clear(box); clear(info);
+
+  var totalLines = 0;
+  STATE.docs.forEach(function (d) { totalLines += (d.rawLines ? d.rawLines.length : 0); });
+  var got = 0;
+  PARAM_DEFS.forEach(function (def) {
+    var pp = STATE.params[def.k];
+    if (pp && pp.value !== null && pp.value !== undefined) got++;
+  });
+
+  var msg = '共抽出 ' + totalLines + ' 行文字，對應到 ' + got + ' / ' + PARAM_DEFS.length + ' 個評分參數。';
+  if (totalLines > 0 && got <= PARAM_DEFS.length / 3) {
+    msg += '　文字讀得到，但大多數參數沒對上 — 代表你們的病歷用語與內建規則不同，需要調整擷取規則。';
+  }
+  var n = el('div', 'note' + (totalLines > 0 && got <= PARAM_DEFS.length / 3 ? ' decline' : ''), msg);
+  info.appendChild(n);
+
+  STATE.docs.forEach(function (d) {
+    box.appendChild(el('div', 'rawhead',
+      d.file + ' · ' + d.pages + ' 頁 · ' + (d.rawLines ? d.rawLines.length : 0) + ' 行'));
+    var pre = el('pre', 'rawtext');
+    pre.textContent = (d.rawLines || []).map(function (l) {
+      return 'p' + l.page + ' | ' + l.text;
+    }).join('\n');
+    box.appendChild(pre);
+  });
+}
+
 function refresh() {
   var bsi = computeBSI();
   renderScore('bsi', bsi);
@@ -1259,12 +1341,14 @@ function refresh() {
   renderFindings();
   renderFlags(bsi);
   renderProv();
+  renderRaw();
   var dz = document.getElementById('drop');
+  document.getElementById('rawCard').hidden = STATE.docs.length === 0;
   dz.classList.toggle('compact', STATE.docs.length > 0);
   dz.querySelector('h2').textContent = STATE.docs.length
     ? '已載入 ' + STATE.docs.length + ' 份 PDF — 可繼續拖入更多檔案以延長趨勢'
     : '把門診紀錄 PDF 拖進來';
-  document.getElementById('dash').hidden = STATE.docs.length === 0;
+  document.getElementById('dash').hidden = STATE.docs.length === 0 && !STATE.manualMode;
 }
 
 /* ══════════════════════════════════════════════════════════════════
@@ -1282,8 +1366,9 @@ function handleFiles(fileList) {
       log('解析中：' + file.name + '（' + Math.round(file.size / 1024) + ' KB）…');
       return readPdf(file).then(function (doc) {
         if (doc.lines.length === 0) {
-          log('⚠ ' + file.name + '：共 ' + doc.pages + ' 頁，但抽不到任何文字。' +
-              '這份 PDF 很可能是掃描影像，需要 OCR 才能解析。', 'wr');
+          STATE.noText.push({ name: file.name, pages: doc.pages });
+          log('⚠ ' + file.name + '：共 ' + doc.pages + ' 頁，但抽不到任何文字（掃描影像）。', 'wr');
+          renderBanner();
           return;
         }
         var ex = extractDoc(doc);
@@ -1298,7 +1383,8 @@ function handleFiles(fileList) {
   });
 
   chain.then(function () {
-    if (!STATE.docs.length) return;
+    renderBanner();
+    if (!STATE.docs.length && !STATE.manualMode) return;
     buildParams();
     refresh();
     document.getElementById('drop').scrollIntoView({ block: 'start' });
@@ -1328,11 +1414,22 @@ drop.addEventListener('drop', function (e) {
 window.addEventListener('dragover', function (e) { e.preventDefault(); });
 window.addEventListener('drop', function (e) { e.preventDefault(); });
 
+document.getElementById('btnSelectRaw').addEventListener('click', function () {
+  var box = document.getElementById('raw');
+  if (!box.firstChild) return;
+  var sel = window.getSelection();
+  var range = document.createRange();
+  range.selectNodeContents(box);
+  sel.removeAllRanges();
+  sel.addRange(range);
+});
+
 document.getElementById('btnPrint').addEventListener('click', function () { window.print(); });
 
 document.getElementById('btnClear').addEventListener('click', function () {
-  if (STATE.docs.length && !confirm('清除所有已載入的資料？此動作無法復原。')) return;
-  STATE.docs = []; STATE.params = {}; STATE.unmasked = false;
+  if ((STATE.docs.length || STATE.manualMode) && !confirm('清除所有已載入的資料？此動作無法復原。')) return;
+  STATE.docs = []; STATE.params = {}; STATE.unmasked = false; STATE.noText = []; STATE.manualMode = false;
+  document.getElementById('banner').hidden = true;
   clear(logBox); logBox.hidden = true;
   document.getElementById('dash').hidden = true;
   var dz0 = document.getElementById('drop');
@@ -1342,7 +1439,7 @@ document.getElementById('btnClear').addEventListener('click', function () {
 });
 
 document.getElementById('btnExport').addEventListener('click', function () {
-  if (!STATE.docs.length) { alert('尚未載入任何資料。'); return; }
+  if (!STATE.docs.length && !STATE.manualMode) { alert('尚未載入任何資料。'); return; }
   var bsi = computeBSI(), faced = computeFACED(), efaced = computeEFACED();
   var params = {};
   PARAM_DEFS.forEach(function (d) {
@@ -1381,7 +1478,7 @@ document.getElementById('btnExport').addEventListener('click', function () {
 });
 
 window.addEventListener('beforeunload', function (e) {
-  if (STATE.docs.length) { e.preventDefault(); e.returnValue = ''; }
+  if (STATE.docs.length || STATE.manualMode) { e.preventDefault(); e.returnValue = ''; }
 });
 
 // 對外暴露最小測試介面（僅供自動化驗證使用）

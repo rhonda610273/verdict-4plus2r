@@ -86,7 +86,7 @@ FVC   2.28 L   66 % pred
 
   await page.goto('file://' + APP);
   await page.setInputFiles('#file', DOCS.map(d => path.join(OUT, d[0])));
-  await page.waitForFunction(() => !document.getElementById('dash').hidden, { timeout: 60000 });
+  await page.locator('#dash').waitFor({ state: 'visible', timeout: 60000 });
   await page.waitForTimeout(600);
 
   // ── 3. 讀取結果 ──────────────────────────────────────────────
