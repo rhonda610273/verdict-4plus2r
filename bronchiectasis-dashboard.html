@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="referrer" content="no-referrer">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-zop1qVWSwRoaNiXWuf/y8FVy7cgzEn2+D4tzTJIfR7c=' 'sha256-OM3lMRlXuGvDZp+T59JWbeMzqQBV7WY1vvYNm/AOlvI=' 'sha256-l4/RstE0qY6YlmGGqXd3vr+H2Odw2tqx7ONofiGlqmw=' 'sha256-ZfzfS7z35hq7MhcoHkv2/NEY2AlRRFsOJx8qs4FPJdw='; style-src 'sha256-+wz2xrD9+uiNSgaWdAi1jLHYft/HW0ppbS074ble53o='; img-src 'self' data:; font-src 'none'; connect-src 'none'; worker-src 'none'; child-src 'none'; frame-src 'none'; object-src 'none'; media-src 'none'; manifest-src 'none'; form-action 'none'; base-uri 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-zop1qVWSwRoaNiXWuf/y8FVy7cgzEn2+D4tzTJIfR7c=' 'sha256-OM3lMRlXuGvDZp+T59JWbeMzqQBV7WY1vvYNm/AOlvI=' 'sha256-l4/RstE0qY6YlmGGqXd3vr+H2Odw2tqx7ONofiGlqmw=' 'sha256-WTQ3/TpLixAY7lMiR+XFPIuQ5IA3xPScA2VgJ0VAvco='; style-src 'sha256-+wz2xrD9+uiNSgaWdAi1jLHYft/HW0ppbS074ble53o='; img-src 'self' data:; font-src 'none'; connect-src 'none'; worker-src 'none'; child-src 'none'; frame-src 'none'; object-src 'none'; media-src 'none'; manifest-src 'none'; form-action 'none'; base-uri 'none'">
 <title>支氣管擴張症 · 門診一頁式儀錶板（離線版）</title>
 <style>
 :root{
@@ -417,6 +417,8 @@ function readPdf(file) {
 // ── 日期：支援西元與民國年 ──────────────────────────────────────
 var DATE_RE = /(?:民國\s*)?(\d{2,4})\s*[\/\-\.年]\s*(\d{1,2})\s*[\/\-\.月]\s*(\d{1,2})\s*日?/;
 var DATE_RE_G = new RegExp(DATE_RE.source, 'g');
+// 無分隔的 8 位日期，如 20260828（前後需為非數字，避免吃到電話或身分證號）
+var DATE_COMPACT_G = /(^|[^0-9])((?:19|20)\d{2})(0[1-9]|1[0-2])(0[1-9]|[12]\d|3[01])(?![0-9])/g;
 
 function parseDate(y, m, d) {
   y = +y; m = +m; d = +d;
@@ -441,6 +443,7 @@ function fmtDate(dt) {
 function findFirst(doc, re, pick, exclude) {
   for (var i = 0; i < doc.lines.length; i++) {
     var l = doc.lines[i];
+    if (l.skip) continue;
     if (exclude && exclude.test(l.text)) continue;
     var m = l.text.match(re);
     if (m) {
@@ -455,6 +458,7 @@ function findFirst(doc, re, pick, exclude) {
 function findAllLines(doc, re) {
   var out = [];
   for (var i = 0; i < doc.lines.length; i++) {
+    if (doc.lines[i].skip) continue;
     if (re.test(doc.lines[i].text)) out.push(doc.lines[i]);
     re.lastIndex = 0;
   }
@@ -492,8 +496,8 @@ var ORGANISMS = [
   { key: 'AB',   cls: 'other', label: 'Acinetobacter baumannii',
     re: /acinetobacter/i }
 ];
-var NEG_RE = /no\s*(?:bacterial\s*)?growth|無細菌生長|未生長|normal\s*(?:respiratory\s*)?flora|正常菌叢|negative\s*culture|培養陰性/i;
-var CULTURE_CTX = /culture|培養|sputum|痰|microbiolog|菌|gram\s*stain|抗生素敏感|susceptibilit/i;
+var NEG_RE = /no\s*(?:bacterial\s*)?growth|無細菌生長|未生長|normal\s*(?:respiratory\s*)?flora|正常菌叢|培養陰性|(?:culture|培養)\s*[:：(]?\s*negative|negative\s*(?:culture|for)|\(\s*-\s*\)|陰性/i;
+var CULTURE_CTX = /culture|培養|sputum|痰|microbiolog|菌|gram\s*stain|抗生素敏感|susceptibilit|\bBAL\b|\bBALF\b|bronchial\s*(?:washing|lavage)|支氣管沖洗|肺泡灌洗|\btNGS\b|\bmNGS\b/i;
 
 // ── 用藥字典 ────────────────────────────────────────────────────
 var MEDS = [
@@ -505,6 +509,8 @@ var MEDS = [
   { g: '支氣管擴張劑 (LABA/LAMA/SABA)', re: /formoterol|salmeterol|indacaterol|vilanterol|olodaterol|tiotropium|glycopyrron|umeclidinium|aclidinium|salbutamol|albuterol|terbutaline|ipratropium|\bLABA\b|\bLAMA\b|\bSABA\b/i },
   { g: '吸入性類固醇 (ICS)',       re: /budesonide|fluticasone|beclomethasone|ciclesonide|mometasone|\bICS\b|吸入性?類固醇/i },
   { g: '氣道清潔 / 呼吸復健',      re: /airway\s*clearance|chest\s*physiotherapy|postural\s*drainage|\bACBT\b|flutter|acapella|\bPEP\b|胸腔物理治療|姿位引流|呼吸訓練|肺部復健|pulmonary\s*rehab/i },
+  { g: '抗血小板 / 抗凝血藥', re: /plavix|clopidogrel|aspirin|\bASA\b|ticagrelor|prasugrel|warfarin|coumadin|apixaban|rivaroxaban|edoxaban|dabigatran|heparin|enoxaparin|抗凝血|抗血小板|保栓通|阿斯匹靈/i },
+  { g: '止血 / 咳血處置', re: /tranexamic|transamin|hemostatic|止血|bronchial\s*artery\s*emboli|支氣管動脈栓塞|\bBAE\b/i },
   { g: '疫苗',                     re: /influenza\s*vaccin|pneumococcal\s*vaccin|\bPPSV\b|\bPCV\s?1?3\b|流感疫苗|肺炎鏈球菌疫苗|COVID[\-\s]?19\s*vaccin/i }
 ];
 
@@ -518,36 +524,116 @@ var LOBES = [
   { k: 'Lingula', re: /lingula|舌葉|舌節/i }
 ];
 
+// ── 表格式排版：標題在一行、值在下一行 ─────────────────────────
+// 例：  姓名 身分證號 性別 出生日期 病歷號碼 門診日期 門診科別
+//       ooo oooooooooo 女  19oo-oo-oo oooooooo 2026-09-24 胸腔內科
+var COL_LABELS = {
+  '姓名': 'name', '病患姓名': 'name', '患者姓名': 'name', '病人姓名': 'name', 'Name': 'name',
+  '身分證號': 'nid', '身分證字號': 'nid', '身份證號': 'nid', '身份證字號': 'nid',
+  '性別': 'sex', 'Sex': 'sex', 'Gender': 'sex',
+  '出生日期': 'birth', '生日': 'birth', '出生年月日': 'birth', 'Birthday': 'birth',
+  '病歷號碼': 'chartNo', '病歷號': 'chartNo', '病歷編號': 'chartNo', '病歷': 'chartNo', 'MRN': 'chartNo',
+  '門診日期': 'visitDate', '就診日期': 'visitDate', '看診日期': 'visitDate', '日期': 'visitDate',
+  '住院日期': 'visitDate', '採檢日期': 'visitDate', '報告日期': 'visitDate',
+  '門診科別': 'dept', '科別': 'dept', '就診科別': 'dept', '主治科別': 'dept',
+  '年齡': 'age', 'Age': 'age',
+  '身高': 'height', '體重': 'weight', 'BMI': 'bmi'
+};
+var MASKED_RE = /^[oO0＊*xX\u25cf\u25cb\-\u2014_]+$/;
+
+function colConvert(key, raw) {
+  if (!raw || MASKED_RE.test(raw)) return null;
+  switch (key) {
+    case 'sex':
+      var v = raw.toUpperCase();
+      if (raw === '男' || v === 'M' || v === 'MALE') return '男';
+      if (raw === '女' || v === 'F' || v === 'FEMALE') return '女';
+      return null;
+    case 'birth':
+    case 'visitDate':
+      var d = matchDate(raw);
+      return d ? fmtDate(d) : null;
+    case 'age':    return inRange(num(raw), 0, 120);
+    case 'height': return inRange(num(raw), 80, 230);
+    case 'weight': return inRange(num(raw), 20, 250);
+    case 'bmi':    return inRange(num(raw), 8, 70);
+    case 'dept':   return /[\u4e00-\u9fffA-Za-z]/.test(raw) ? raw : null;
+    default:       return raw;
+  }
+}
+
+function extractColumnar(doc) {
+  var out = {};
+  for (var i = 0; i < doc.lines.length - 1; i++) {
+    if (doc.lines[i].skip) continue;
+    var toks = doc.lines[i].text.split(/\s+/).filter(Boolean);
+    if (toks.length < 3) continue;
+    var keys = [], known = 0;
+    for (var t = 0; t < toks.length; t++) {
+      var k = COL_LABELS[toks[t]] || null;
+      keys.push(k);
+      if (k) known++;
+    }
+    // 至少 3 個已知標題，且該行多數 token 都是標題，才視為標題列
+    if (known < 3 || known < toks.length * 0.6) continue;
+    var vline = doc.lines[i + 1];
+    if (!vline || vline.skip) continue;
+    var vals = vline.text.split(/\s+/).filter(Boolean);
+    if (vals.length !== toks.length) continue;   // 欄數不合就不猜
+    for (var j = 0; j < keys.length; j++) {
+      if (!keys[j] || out[keys[j]]) continue;
+      var conv = colConvert(keys[j], vals[j]);
+      if (conv === null || conv === undefined || conv === '') continue;
+      out[keys[j]] = { value: conv, page: vline.page, file: doc.name, columnar: true,
+                       snippet: doc.lines[i].text + '\n' + vline.text };
+    }
+  }
+  return out;
+}
+
+// ── 前處理：標記要忽略的區塊、切 SOAP 段落 ──────────────────────
+function preprocess(doc) {
+  var inTocc = false, sec = null, diagnoses = [];
+  for (var i = 0; i < doc.lines.length; i++) {
+    var l = doc.lines[i], t = l.text;
+    if (/\u3010\s*TOCC/.test(t)) { inTocc = !/TOCC\s*END/i.test(t); l.skip = true; continue; }
+    if (inTocc) { l.skip = true; if (/TOCC\s*END/i.test(t)) inTocc = false; continue; }
+
+    var m = t.match(/^([SOAP])\s*[:：]/);
+    if (m) { sec = m[1]; l.section = sec; continue; }
+    l.section = sec;
+    if (sec === 'A' && t.trim() && diagnoses.length < 12) diagnoses.push(t.trim());
+  }
+  return diagnoses;
+}
+
 /* ── 單一文件擷取 ──────────────────────────────────────────────── */
 function extractDoc(doc) {
   var r = { file: doc.name, pages: doc.pages, lines: doc.lines.length, rawLines: doc.lines, fields: {}, organisms: [],
             meds: [], lobes: [], findings: [], dates: [] };
   var F = r.fields;
 
+  r.diagnoses = preprocess(doc);
+
   // 所有日期（供推定就診日 / 時間軸）
   for (var i = 0; i < doc.lines.length; i++) {
+    if (doc.lines[i].skip) continue;
     var t = doc.lines[i].text, mm;
     DATE_RE_G.lastIndex = 0;
     while ((mm = DATE_RE_G.exec(t)) !== null) {
       var d = parseDate(mm[1], mm[2], mm[3]);
       if (d) r.dates.push({ d: d, page: doc.lines[i].page, snippet: t });
     }
+    DATE_COMPACT_G.lastIndex = 0;
+    while ((mm = DATE_COMPACT_G.exec(t)) !== null) {
+      var dc = parseDate(mm[2], mm[3], mm[4]);
+      if (dc) r.dates.push({ d: dc, page: doc.lines[i].page, snippet: t });
+    }
   }
 
   // 就診日期
   F.visitDate = findFirst(doc, new RegExp('(?:就診|門診|看診|檢查|報告|採檢|收案|Visit|Exam|Report|Collect(?:ion)?|Study)\\s*(?:日期|Date)?\\s*[:：]?\\s*' + DATE_RE.source, 'i'),
     function (m) { var d = parseDate(m[1], m[2], m[3]); return d ? fmtDate(d) : null; });
-  if (!F.visitDate && r.dates.length) {
-    // 退而求其次：取文件中最晚的合理日期
-    var sorted = r.dates.slice().sort(function (a, b) { return b.d - a.d; });
-    var now = Date.now();
-    for (var s = 0; s < sorted.length; s++) {
-      if (sorted[s].d.getTime() <= now + 86400000) {
-        F.visitDate = { value: fmtDate(sorted[s].d), page: sorted[s].page, snippet: sorted[s].snippet, file: doc.name, weak: true };
-        break;
-      }
-    }
-  }
 
   // 身分識別（僅為了遮蔽與提醒，不會被匯出）
   // 姓名：中文姓名不吃空白（避免把後面的「病歷號…」一起吃進來）；英文姓名最多兩個空白
@@ -572,7 +658,7 @@ function extractDoc(doc) {
     function (m) { var d = parseDate(m[1], m[2], m[3]); return d ? fmtDate(d) : null; });
 
   // 體位
-  F.height = findFirst(doc, /(?:身高|Height|\bHt\b)\s*[:：]?\s*(\d{2,3}(?:\.\d)?)\s*(?:cm|公分)?/i,
+  F.height = findFirst(doc, /(?:身高|Height|\bHt\b|\bBH\b)\s*[:：]?\s*(\d{2,3}(?:\.\d)?)\s*(?:cm|公分)?/i,
     function (m) { return inRange(num(m[1]), 80, 230); });
   F.weight = findFirst(doc, /(?:體重|Weight|\bBW\b|\bWt\b)\s*[:：]?\s*(\d{2,3}(?:\.\d)?)\s*(?:kg|公斤|公克)?/i,
     function (m) { return inRange(num(m[1]), 20, 250); });
@@ -624,7 +710,9 @@ function extractDoc(doc) {
   // SpO2 / 咳血 / 痰量
   F.spo2 = findFirst(doc, /(?:SpO2|SaO2|血氧|oxygen\s*saturation)\s*[:：]?\s*(\d{2,3})\s*%?/i,
     function (m) { return inRange(num(m[1]), 50, 100); });
-  F.hemoptysis = findFirst(doc, /(?:h?emoptysis|咳血|血痰|痰中帶血)/i, function (m, l) { return l.text; });
+  F.hemoptysis = findFirst(doc,
+    /(?:h?emoptysis|h?emosputum|blood[\-\s]?(?:tinged|streaked)\s*sputum|frank\s*blood|blood\s*clot|咳血|血痰|痰中帶血|痰有血)/i,
+    function (m, l) { return l.text; });
 
   // 微生物
   var seen = {};
@@ -676,6 +764,48 @@ function extractDoc(doc) {
   var etio = findFirst(doc, /post[\-\s]?infect|結核後|TB\s*sequel|\bABPA\b|cystic\s*fibrosis|囊狀纖維化|immunodeficien|免疫缺乏|低免疫球蛋白|primary\s*ciliary|纖毛不動|\bPCD\b|rheumatoid|類風濕|潰瘍性結腸炎|Crohn|alpha[\-\s]?1|逆流|GERD|異物吸入/i,
     function (m, l) { return l.text; });
   if (etio) r.findings.push({ k: '可能病因線索', page: etio.page, snippet: etio.snippet, file: doc.name });
+
+  // ── 表格式擷取：補上「標題一行、值下一行」的欄位 ──────────────
+  var col = extractColumnar(doc);
+  ['name', 'nid', 'sex', 'birth', 'chartNo', 'visitDate', 'dept',
+   'age', 'height', 'weight', 'bmi'].forEach(function (k) {
+    if (!F[k] && col[k]) F[k] = col[k];
+  });
+
+  // ── 診斷（SOAP 的 A 段）──────────────────────────────────────
+  if (r.diagnoses.length) {
+    r.findings.push({ k: '診斷：' + r.diagnoses.slice(0, 2).join('；').slice(0, 38),
+                      page: 1, snippet: r.diagnoses.join('\n'), file: doc.name });
+  }
+
+  // ── 推導值 ──────────────────────────────────────────────────
+  if (!F.bmi && F.height && F.weight) {
+    var hm = F.height.value / 100;
+    F.bmi = { value: Math.round(F.weight.value / (hm * hm) * 10) / 10, page: F.weight.page,
+              snippet: '由身高 ' + F.height.value + ' cm / 體重 ' + F.weight.value + ' kg 計算',
+              file: doc.name, derived: true };
+  }
+  if (!F.visitDate && r.dates.length) {
+    var sorted = r.dates.slice().sort(function (a, b) { return b.d - a.d; });
+    var now = Date.now();
+    for (var si = 0; si < sorted.length; si++) {
+      if (sorted[si].d.getTime() <= now + 86400000) {
+        F.visitDate = { value: fmtDate(sorted[si].d), page: sorted[si].page,
+                        snippet: sorted[si].snippet, file: doc.name, weak: true };
+        break;
+      }
+    }
+  }
+  if (!F.age && F.birth && F.visitDate) {
+    var bt = Date.parse(F.birth.value), vt = Date.parse(F.visitDate.value);
+    if (isFinite(bt) && isFinite(vt) && vt > bt) {
+      var yrs = Math.floor((vt - bt) / (365.25 * 86400000));
+      if (yrs >= 0 && yrs <= 120) {
+        F.age = { value: yrs, page: F.birth.page, file: doc.name, derived: true,
+                  snippet: '由出生日期 ' + F.birth.value + ' 與就診日 ' + F.visitDate.value + ' 計算' };
+      }
+    }
+  }
 
   return r;
 }
@@ -774,8 +904,10 @@ function buildParams() {
   // 住院
   var admitSrc = pick('admit');
   var sevSrc = pick('severeExac');
+  // 單一份門診紀錄通常不會記載過去一年的住院史 —— 查無紀錄一律視為「待補」，
+  // 不可當成 0，否則會算出假性偏低的嚴重度分數。
   P.admit2y = { value: admitSrc ? true : null, src: admitSrc, manual: false };
-  P.sevExac1y = { value: sevSrc ? 1 : (admitSrc ? null : 0), src: sevSrc || admitSrc, manual: false };
+  P.sevExac1y = { value: sevSrc ? 1 : null, src: sevSrc || admitSrc, manual: false };
 
   // 肺葉
   var lobeKeys = {}, lobeSrc = null;
@@ -795,10 +927,12 @@ function buildParams() {
   P.cystic = { value: cystSrc ? true : null, src: cystSrc, manual: false };
 
   // 定殖
+  // 完全沒有培養資料時不能判定「無定殖」；要看到陰性培養報告才敢給 false。
+  var negReports = allOrganisms().filter(function (o) { return o.negative; });
   var pa = chronicColonization('PA');
   var paAny = allOrganisms().filter(function (o) { return o.key === 'PA' && !o.negative; });
-  P.paChronic = { value: pa.chronic ? true : (paAny.length ? null : false),
-                  src: paAny.length ? paAny[0] : null, manual: false };
+  P.paChronic = { value: pa.chronic ? true : (paAny.length ? null : (negReports.length ? false : null)),
+                  src: paAny.length ? paAny[0] : (negReports.length ? negReports[0] : null), manual: false };
 
   var otherAny = allOrganisms().filter(function (o) {
     return o.key !== 'PA' && o.key !== 'NEG' && !o.negative;
@@ -807,7 +941,8 @@ function buildParams() {
   var keys = {};
   for (var oi = 0; oi < otherAny.length; oi++) keys[otherAny[oi].key] = 1;
   for (var kk in keys) if (chronicColonization(kk).chronic) otherChronic = true;
-  P.otherChronic = { value: otherChronic ? true : (otherAny.length ? null : false), src: otherSrc, manual: false };
+  P.otherChronic = { value: otherChronic ? true : (otherAny.length ? null : (negReports.length ? false : null)),
+                     src: otherSrc || (negReports.length ? negReports[0] : null), manual: false };
 
   for (var mk in prevManual) P[mk] = prevManual[mk];
   STATE.params = P;
@@ -853,7 +988,8 @@ function computeBSI() {
   add('影像範圍' + (radOk ? '（' + (lb === null ? '?' : lb) + ' 葉' + (cy ? ' · 囊狀' : '') + '）' : ''),
       ((lb !== null && lb >= 3) || cy) ? 1 : 0, radOk);
 
-  var sev = missing.length > 3 ? null : (total <= 4 ? 'mild' : total <= 8 ? 'mod' : 'sev');
+  // 有任何缺項就不給嚴重度分級 —— 缺的項目只會讓分數更高，標成「輕度」會誤導。
+  var sev = missing.length ? null : (total <= 4 ? 'mild' : total <= 8 ? 'mod' : 'sev');
   return { total: total, rows: rows, missing: missing, sev: sev, max: 26 };
 }
 
@@ -872,7 +1008,7 @@ function computeFACED() {
   var mm = val('mmrc');
   add('D · mMRC ' + (mm === null ? '?' : mm), (mm !== null && mm >= 3) ? 1 : 0, mm !== null);
 
-  var sev = missing.length > 2 ? null : (total <= 2 ? 'mild' : total <= 4 ? 'mod' : 'sev');
+  var sev = missing.length ? null : (total <= 2 ? 'mild' : total <= 4 ? 'mod' : 'sev');
   return { total: total, rows: rows, missing: missing, sev: sev, max: 7 };
 }
 
@@ -893,7 +1029,7 @@ function computeEFACED() {
   var mm = val('mmrc');
   add('D · mMRC ' + (mm === null ? '?' : mm), (mm !== null && mm >= 3) ? 1 : 0, mm !== null);
 
-  var sev = missing.length > 2 ? null : (total <= 3 ? 'mild' : total <= 6 ? 'mod' : 'sev');
+  var sev = missing.length ? null : (total <= 3 ? 'mild' : total <= 6 ? 'mod' : 'sev');
   return { total: total, rows: rows, missing: missing, sev: sev, max: 9 };
 }
 
@@ -934,9 +1070,14 @@ var SEVTXT = { mild: '輕度', mod: '中度', sev: '重度' };
 var SEVCLS = { mild: 'sev sev-mild', mod: 'sev sev-mod', sev: 'sev sev-sev' };
 
 function renderScore(prefix, res) {
-  document.getElementById(prefix + 'N').textContent = res.sev === null ? '–' : String(res.total);
+  // 缺項時顯示下限（未填的項目只會讓分數更高），並且不給嚴重度分級
+  document.getElementById(prefix + 'N').textContent =
+    res.sev === null ? (res.total > 0 ? '\u2265' + res.total : '\u2013') : String(res.total);
   var sv = document.getElementById(prefix + 'Sev');
-  if (res.sev === null) { sv.className = 'sev sev-na'; sv.textContent = '資料不足（缺 ' + res.missing.length + ' 項）'; }
+  if (res.sev === null) {
+    sv.className = 'sev sev-na';
+    sv.textContent = '資料不足，缺 ' + res.missing.length + ' 項（補齊後才分級）';
+  }
   else { sv.className = SEVCLS[res.sev]; sv.textContent = SEVTXT[res.sev] + '（' + res.total + '/' + res.max + '）'; }
   var bd = document.getElementById(prefix + 'Bd');
   clear(bd);
@@ -975,6 +1116,11 @@ function renderDemo() {
   row('病歷號', chart ? chart.value : null, true);
   row('身分證號', nid ? nid.value : null, true);
   row('性別', sex ? sex.value : null);
+  var dept = pick('dept');
+  row('科別', dept ? dept.value : null);
+  var dx = [];
+  STATE.docs.forEach(function (d) { (d.diagnoses || []).forEach(function (x) { if (dx.indexOf(x) < 0) dx.push(x); }); });
+  row('診斷', dx.length ? dx.slice(0, 4).join('；') : null);
   row('出生日期', birth ? birth.value : null, true);
   row('最近就診 / 報告日', visit ? visit.value : null);
   row('FVC % pred', fvc ? fvc.value + ' %' : null);
@@ -1250,6 +1396,15 @@ function renderFlags(bsi) {
   }
   if (bmi !== null && bmi < 18.5) {
     add('md', 'BMI ' + bmi + '（< 18.5）', '低體重與較差預後相關，建議營養評估與介入。');
+  }
+  var hemoF = pick('hemoptysis');
+  if (hemoF && medGroups['抗血小板 / 抗凝血藥']) {
+    add('hi', '咳血合併抗血小板 / 抗凝血藥物',
+        '病歷同時出現咳血與抗血小板／抗凝血用藥。請確認停藥決策、出血量評估，' +
+        '必要時考慮支氣管動脈栓塞，並排除新發感染或 NTM。');
+  } else if (hemoF) {
+    add('md', '病歷中記錄咳血 / 血痰',
+        '支氣管擴張症咳血需評估出血量與氣道保護，並排除新發感染、NTM 與黴菌。');
   }
   if (!medGroups['氣道清潔 / 呼吸復健']) {
     add('lo', '未偵測到氣道清潔 / 呼吸物理治療紀錄', '氣道清潔是支氣管擴張症的基礎治療，建議於病歷中明確記錄。');
