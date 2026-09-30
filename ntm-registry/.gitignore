@@ -1,0 +1,12 @@
+# 這個資料夾自帶一份 .gitignore，確保它被複製到任何地方時，
+# 個案資料都不會誤入版控。請勿刪除。
+data/
+backups/
+config.json
+import_mapping.json
+*.db
+*.db-wal
+*.db-shm
+*.csv
+__pycache__/
+*.py[cod]

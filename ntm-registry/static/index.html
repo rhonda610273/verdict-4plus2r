@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow, noarchive">
+<title>非結核分枝桿菌管理系統｜臺北榮民總醫院</title>
+<link rel="icon" href="/favicon.svg">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+<!-- 登入 -->
+<div id="login-view" class="login-wrap hidden">
+  <form id="login-form" class="login-card">
+    <div class="login-brand">
+      <span class="logo-badge">核</span>
+      <div>
+        <div class="login-hosp">臺北榮民總醫院　個案管理平台</div>
+        <div class="login-sys">非結核分枝桿菌管理系統</div>
+      </div>
+    </div>
+    <label>帳號<input type="text" id="login-user" autocomplete="username" required></label>
+    <label>密碼<input type="password" id="login-pass" autocomplete="current-password" required></label>
+    <button type="submit" class="btn btn-orange">登入</button>
+    <p id="login-error" class="error"></p>
+    <p class="login-note">本系統僅限院內指定電腦連線，個案資料儲存於本機</p>
+  </form>
+</div>
+
+<!-- 主畫面 -->
+<div id="app-view" class="hidden">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="hosp">臺北榮民總醫院</div>
+      <div class="sys-name">非結核分枝桿菌<br>管理系統</div>
+      <span class="badge-ntm">NTM</span>
+    </div>
+
+    <div class="nav-section">主要功能</div>
+    <a class="nav-item active" data-view="stats" href="#">
+      <span class="icon">📊</span>統計儀表板</a>
+    <a class="nav-item" data-view="list" href="#">
+      <span class="icon">🗂️</span>個案追蹤</a>
+
+    <div class="nav-section">系統</div>
+    <a class="nav-item" data-view="education" href="#">
+      <span class="icon">📖</span>衛教專區</a>
+    <a class="nav-item admin-only" data-view="audit" href="#">
+      <span class="icon">🔍</span>稽核紀錄</a>
+
+    <div class="sidebar-footer">
+      <div class="side-user" id="who"></div>
+      <a class="back-link" href="#" id="logout">↩ 登出</a>
+      <a class="back-link" href="index.html" id="portal-link">← 返回核而為一入口</a>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <button class="hamburger" id="hamburger" aria-label="選單">☰</button>
+      <div class="topbar-title" id="topbar-title">統計儀表板</div>
+      <div class="topbar-right">
+        <span class="topbar-date" id="topbar-date"></span>
+        <span class="topbar-badge" id="topbar-badge">—</span>
+      </div>
+    </header>
+
+    <div class="content">
+      <!-- 統計儀表板 -->
+      <section id="view-stats" class="panel active">
+        <div class="filter-bar">
+          <label class="fb"><span>起始年</span><select id="f-year-from"></select></label>
+          <label class="fb"><span>結束年</span><select id="f-year-to"></select></label>
+          <label class="fb fb-species"><span>菌種</span><select id="f-dash-species"></select></label>
+          <div class="fb"><span>族群</span>
+            <div class="seg-group" id="f-group">
+              <button data-g="" class="on">兩組對照</button>
+              <button data-g="治療組">治療組</button>
+              <button data-g="觀察組">觀察組</button>
+            </div>
+          </div>
+          <div class="fb" id="fb-mode"><span>比較方式</span>
+            <div class="seg-group" id="f-mode">
+              <button data-m="n" class="on">例數</button>
+              <button data-m="pct">組內占比 %</button>
+            </div>
+          </div>
+          <div class="fb"><span>趨勢時間單位</span>
+            <div class="seg-group" id="f-unit">
+              <button data-unit="year" class="on">年</button>
+              <button data-unit="quarter">季</button>
+              <button data-unit="month">月</button>
+            </div>
+          </div>
+          <span class="spacer"></span>
+          <button id="btn-report" class="btn btn-orange btn-sm">📄 統計報表</button>
+          <button id="btn-stats-csv" class="btn btn-outline btn-sm">⬇ 統計表 CSV</button>
+          <button id="f-reset" class="btn btn-outline btn-sm">重設</button>
+        </div>
+        <div id="dash-kpi" class="dash-grid"></div>
+        <div id="dash-charts" class="chart-grid"></div>
+      </section>
+
+      <!-- 個案追蹤 -->
+      <section id="view-list" class="panel">
+        <div class="card">
+          <div class="card-header">
+            <span class="icon">🗂️</span><h2>NTM 個案追蹤清單</h2>
+            <div class="card-actions">
+              <button id="btn-new" class="btn btn-orange btn-sm">＋ 新增個案</button>
+              <button id="btn-export" class="btn btn-outline btn-sm">匯出 CSV</button>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="toolbar">
+              <input type="search" id="search" placeholder="搜尋病人編號、菌種…">
+              <select id="filter-species"><option value="">全部菌種</option></select>
+              <select id="filter-group"><option value="">觀察組 + 治療組</option></select>
+            </div>
+            <p id="list-count" class="muted"></p>
+            <div class="table-scroll">
+              <table id="case-table" class="data-table">
+                <thead><tr></tr></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 稽核紀錄 -->
+      <section id="view-audit" class="panel">
+        <div class="card">
+          <div class="card-header"><span class="icon">🔍</span><h2>稽核紀錄（最近 300 筆）</h2></div>
+          <div class="card-body">
+            <div class="table-scroll">
+              <table id="audit-table" class="data-table">
+                <thead><tr><th>時間</th><th>使用者</th><th>來源 IP</th><th>動作</th><th>個案</th><th>細節</th></tr></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 衛教專區 -->
+      <section id="view-education" class="panel">
+        <div class="card card-highlight">
+          <div class="card-header">
+            <span class="icon">🖨️</span><h2>列印衛教文章給病人</h2>
+            <div class="card-actions">
+              <button id="btn-handout" class="btn btn-orange btn-sm">挑選並列印</button>
+            </div>
+          </div>
+          <div class="card-body">
+            <p class="muted">
+              勾選要給這位病友的文章，填上姓名與日期，直接列印或存成 PDF。
+              可放大字級給長輩閱讀，一篇一張，不會兩篇擠在一起。</p>
+          </div>
+        </div>
+
+        <div class="card card-highlight">
+          <div class="card-header">
+            <span class="icon">💊</span><h2>用藥說明單張（可列印）</h2>
+            <div class="card-actions">
+              <button id="btn-drugsheet" class="btn btn-outline btn-sm">製作單張</button>
+            </div>
+          </div>
+          <div class="card-body">
+            <p class="muted">
+              勾選這位病友的處方藥，印出服法與可能的副作用、需定期做的檢查、
+              以及該立刻回診的狀況。藥名與副作用要增修，改
+              <code>static/drugsheet.js</code> 存檔即可。</p>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><span class="icon">📖</span><h2>NTM 衛教文章</h2></div>
+          <div class="card-body">
+            <p class="muted edu-intro">
+              由臺北榮總胸腔部醫療團隊為病友撰寫。點選主題閱讀全文，全文頁右上角可直接列印。</p>
+            <div class="edu-grid" id="edu-grid"></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><span class="icon">🔗</span><h2>相關連結</h2></div>
+          <div class="card-body">
+            <a class="link-item" id="intro-portal" href="index.html">
+              <span class="ic">🏠</span>
+              <span><span class="lbl">入口</span>核而為一</span></a>
+            <a class="link-item" id="intro-tb" href="TB主系統整合.html">
+              <span class="ic">🫁</span>
+              <span><span class="lbl">姊妹系統</span>結核病防治整合系統</span></a>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+</div>
+
+<!-- 個案編輯抽屜 -->
+<div id="editor" class="drawer hidden">
+  <div class="drawer-inner">
+    <div class="drawer-head">
+      <h2 id="editor-title">新增個案</h2>
+      <div>
+        <button id="editor-delete" class="btn btn-danger btn-sm admin-only hidden">刪除</button>
+        <button id="editor-cancel" class="btn btn-outline btn-sm">取消</button>
+        <button id="editor-save" class="btn btn-orange btn-sm">儲存</button>
+      </div>
+    </div>
+    <p id="editor-error" class="error"></p>
+    <form id="case-form"></form>
+
+    <fieldset id="visit-block" class="hidden">
+      <legend>追蹤紀錄</legend>
+      <p class="muted" id="visit-hint">先儲存個案，才能新增追蹤紀錄。</p>
+      <div id="visit-list"></div>
+      <button type="button" id="btn-add-visit" class="btn btn-outline btn-sm">
+        ＋ 新增一次追蹤</button>
+    </fieldset>
+  </div>
+</div>
+
+<!-- 衛教全文閱讀 -->
+<div id="edu-reader" class="reader hidden">
+  <div class="reader-inner">
+    <div class="reader-tools no-print">
+      <button type="button" id="edu-reader-print" class="btn btn-outline btn-sm">🖨 列印</button>
+      <button type="button" id="edu-reader-close" class="reader-close" aria-label="關閉">✕</button>
+    </div>
+    <div id="edu-reader-body" class="reader-body"></div>
+  </div>
+</div>
+
+<!-- 衛教文章列印 -->
+<div id="handout" class="handout-wrap hidden">
+  <div class="handout-side no-print">
+    <div class="hs-head">
+      <h2>列印設定</h2>
+      <button type="button" id="ho-close" class="reader-close" aria-label="關閉">✕</button>
+    </div>
+
+    <label class="hs-f"><span>病人姓名</span>
+      <input type="text" id="ho-name" placeholder="留白則印出空格供手寫"></label>
+    <div class="hs-f"><span>稱謂</span>
+      <div class="seg-group" id="ho-title">
+        <button type="button" data-t="" class="on">不印</button>
+        <button type="button" data-t="先生">先生</button>
+        <button type="button" data-t="女士">女士</button>
+      </div>
+    </div>
+    <label class="hs-f"><span>日期</span>
+      <input type="date" id="ho-date"></label>
+    <div class="hs-f"><span>字級</span>
+      <div class="seg-group" id="ho-size">
+        <button type="button" data-s="m" class="on">標準</button>
+        <button type="button" data-s="l">大字</button>
+        <button type="button" data-s="xl">特大</button>
+      </div>
+    </div>
+
+    <fieldset class="hs-drugs">
+      <legend>要列印的文章</legend>
+      <div class="hs-pick-actions">
+        <button type="button" id="ho-all" class="btn btn-outline btn-sm">全選</button>
+        <button type="button" id="ho-none" class="btn btn-outline btn-sm">全部取消</button>
+        <span class="muted" id="ho-count"></span>
+      </div>
+      <div id="ho-articles"></div>
+    </fieldset>
+
+    <div class="hs-actions">
+      <button type="button" id="ho-print" class="btn btn-orange">🖨 列印 / 存成 PDF</button>
+    </div>
+    <p class="muted hs-tip">列印視窗選「另存為 PDF」即可留檔。<br>
+      A4 直式、邊界用預設值；取消勾選「頁首及頁尾」比較好看。</p>
+  </div>
+
+  <div class="handout-paper" id="ho-paper"></div>
+</div>
+
+<!-- 用藥說明單張 -->
+<div id="drugsheet" class="handout-wrap hidden">
+  <div class="handout-side no-print">
+    <div class="hs-head">
+      <h2>用藥單張設定</h2>
+      <button type="button" id="ds-close" class="reader-close" aria-label="關閉">✕</button>
+    </div>
+    <label class="hs-f"><span>病人姓名</span>
+      <input type="text" id="ds-name" placeholder="留白則印出空格供手寫"></label>
+    <div class="hs-f"><span>稱謂</span>
+      <div class="seg-group" id="ds-title">
+        <button type="button" data-t="" class="on">不印</button>
+        <button type="button" data-t="先生">先生</button>
+        <button type="button" data-t="女士">女士</button>
+      </div>
+    </div>
+    <label class="hs-f"><span>病歷號／病人編號</span>
+      <input type="text" id="ds-code" placeholder="可留白"></label>
+    <label class="hs-f"><span>日期</span>
+      <input type="date" id="ds-date"></label>
+
+    <fieldset class="hs-drugs">
+      <legend>這次的處方藥物</legend>
+      <p class="muted hs-hint">勾選後只印勾選的藥；完全不勾則印出全部藥物清單，
+        讓護理師當場手動打勾。</p>
+      <div id="ds-drugs"></div>
+    </fieldset>
+
+    <label class="hs-f"><span>下次回診</span>
+      <input type="text" id="ds-next" placeholder="例：114/10/15 上午 胸腔科"></label>
+    <label class="hs-f"><span>聯絡電話</span>
+      <input type="text" id="ds-tel" placeholder="例：(02)2875-7546 個管師"></label>
+    <label class="hs-f"><span>衛教者</span>
+      <input type="text" id="ds-by" placeholder="例：王小美 護理師"></label>
+
+    <div class="hs-actions">
+      <button type="button" id="ds-print" class="btn btn-orange">🖨 列印 / 存成 PDF</button>
+      <button type="button" id="ds-clear" class="btn btn-outline btn-sm">清除勾選</button>
+    </div>
+  </div>
+
+  <div class="handout-paper" id="ds-paper"></div>
+</div>
+
+<!-- 統計報表 -->
+<div id="report" class="handout-wrap hidden">
+  <div class="handout-side no-print">
+    <div class="hs-head">
+      <h2>報表設定</h2>
+      <button type="button" id="rp-close" class="reader-close" aria-label="關閉">✕</button>
+    </div>
+    <p class="muted hs-hint" id="rp-filters"></p>
+
+    <label class="hs-f"><span>報表標題</span>
+      <input type="text" id="rp-title" value="NTM 個案統計報表"></label>
+    <label class="hs-f"><span>用途／會議名稱</span>
+      <input type="text" id="rp-purpose" placeholder="例：114 年第 3 季科務會議"></label>
+    <label class="hs-f"><span>製表者</span>
+      <input type="text" id="rp-by" placeholder="例：王小美 個管師"></label>
+    <label class="hs-f"><span>製表日期</span>
+      <input type="date" id="rp-date"></label>
+
+    <div class="hs-f"><span>呈現方式</span>
+      <div class="seg-group" id="rp-show">
+        <button type="button" data-s="both" class="on">圖＋表</button>
+        <button type="button" data-s="chart">只要圖</button>
+        <button type="button" data-s="table">只要表</button>
+      </div>
+    </div>
+
+    <fieldset class="hs-drugs">
+      <legend>報表內容</legend>
+      <div id="rp-sections"></div>
+    </fieldset>
+
+    <div class="hs-actions">
+      <button type="button" id="rp-print" class="btn btn-orange">🖨 列印 / 存成 PDF</button>
+      <button type="button" id="rp-csv" class="btn btn-outline btn-sm">⬇ CSV</button>
+    </div>
+    <p class="muted hs-tip">報表只含統計數字，不含任何個案識別資料。<br>
+      要整份個案明細請用「個案追蹤」頁的匯出 CSV。</p>
+  </div>
+
+  <div class="handout-paper" id="rp-paper"></div>
+</div>
+
+<div id="toast" class="toast hidden"></div>
+
+<script src="/education.js"></script>
+<script src="/drugsheet.js"></script>
+<script src="/charts.js"></script>
+<script src="/app.js"></script>
+</body>
+</html>
