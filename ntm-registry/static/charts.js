@@ -15,6 +15,9 @@ const VIZ = {
   good: '#0ca30c', warn: '#fab219', bad: '#d03b3b',   // 狀態色
   grid: '#e1e0d9', axis: '#c3c2b7', muted: '#898781',
   ink: '#1c2333', ink2: '#52514e', surface: '#ffffff',
+  /* 有序類別（抹片價數 0 → 4+）用同色系由淺到深，
+     讓「愈深＝菌量愈多」可以直接讀出來；陰性用灰色，與有菌量的藍階分開。 */
+  ramp: ['#9aa3ad', '#c2dcf7', '#8fbeee', '#5b9ce4', '#2a78d6', '#17457e'],
 };
 
 const NS = 'http://www.w3.org/2000/svg';
@@ -482,6 +485,73 @@ function mirrorBar(baseX, w, y, h) {
 /* ------------------------------------------------------------------ */
 /* 堆疊長條 —— 藥敏 S / I / R                                          */
 /* ------------------------------------------------------------------ */
+/* ------------------------------------------------------------------ */
+/* 堆疊長條 —— 每一列的組成比例（抹片價數分布）                        */
+/* ------------------------------------------------------------------ */
+
+/** rows: [{key, total, <段名>: n}]，segs: [{key, color, name}]。
+ *  比的是「同一列裡各段的占比」，所以每列都拉到等長，尾端標 n。 */
+function stackedBars(host, rows, segs, opts) {
+  opts = opts || {};
+  host.textContent = '';
+  if (!rows.length || !segs.length) return empty(host, opts.emptyText);
+
+  const W = hostWidth(host);
+  const labelW = Math.min(opts.labelWidth || 170, Math.round(W * 0.36));
+  const rowH = 30, barH = 18, padTop = 8, padBottom = 10, tailW = 66;
+  const plotW = W - labelW - tailW - 12;
+  const height = padTop + rows.length * rowH + padBottom;
+  const svg = makeSvg(W, height, opts.title || '堆疊長條圖');
+
+  rows.forEach((r, i) => {
+    const y = padTop + i * rowH, by = y + (rowH - barH) / 2;
+    const labelNode = el('text', {
+      x: labelW - 10, y: y + rowH / 2 + 4, 'text-anchor': 'end', class: 'viz-label',
+    }, fitLabel(r.key, labelW - 14));
+    labelNode.appendChild(el('title', {}, r.key));
+    svg.appendChild(labelNode);
+
+    const total = r.total || segs.reduce((sum, sg) => sum + (r[sg.key] || 0), 0);
+    let x = labelW;
+    const drawn = segs.filter((sg) => (r[sg.key] || 0) > 0);
+    drawn.forEach((sg, si) => {
+      const raw = total ? (r[sg.key] / total) * plotW : 0;
+      const gap = si < drawn.length - 1 ? 2 : 0;    // 2px 底色間隙分隔相鄰色塊
+      const w = Math.max(raw - gap, 1);
+      const d = si === drawn.length - 1
+        ? barPath(x, by, w, barH, 'right')
+        : `M${x},${by}h${w}v${barH}h${-w}z`;
+      const seg = el('path', { d, fill: sg.color, class: 'viz-mark' });
+      hoverable(seg, r.key, drawn.map((s2) => ({
+        swatch: s2.color, name: s2.name,
+        value: (r[s2.key] || 0) + ' 例（' + Math.round((r[s2.key] / total) * 100) + '%）',
+      })));
+      svg.appendChild(seg);
+      if (w > 26) {          // 塞不下就不放段內標籤，絕不裁字
+        svg.appendChild(el('text', {
+          x: x + w / 2, y: by + barH / 2 + 4, 'text-anchor': 'middle',
+          class: 'viz-seg-label', fill: readableInk(sg.color),
+        }, sg.name));
+      }
+      x += raw;
+    });
+    svg.appendChild(el('text', {
+      x: labelW + plotW + 10, y: y + rowH / 2 + 4, class: 'viz-value',
+    }, 'n=' + total));
+  });
+
+  host.appendChild(svg);
+  host.appendChild(legend(segs.map((sg) => ({ color: sg.color, name: sg.name }))));
+}
+
+/** 色塊上的字要看得見：亮底用深字，暗底用白字。 */
+function readableInk(hex) {
+  const n = parseInt(hex.slice(1), 16);
+  const lum = (0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255)
+               + 0.114 * (n & 255)) / 255;
+  return lum > 0.6 ? '#1c2333' : '#ffffff';
+}
+
 function stackedSIR(host, rows) {
   host.textContent = '';
   if (!rows.length) return empty(host, '尚未登錄藥敏結果');

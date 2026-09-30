@@ -10,6 +10,7 @@ from datetime import datetime, timezone, timedelta
 
 from fields import (FIELDS, FIELD_MAP, SQL_TYPE, KEY, STAT_FIELDS,
                     SEARCH_COLUMNS, VISIT_FIELDS, VISIT_EVENTS,
+                    ORDERED_VALUES, SKIP_BLANK_FIELDS,
                     OUR_SITE, OUR_SITE_CODE)
 
 ID_COL = KEY["id"]        # 唯一識別欄位（目前是 patient_code）
@@ -542,8 +543,17 @@ def dashboard(year_from=None, year_to=None, species=None, group=None):
     converted = [c for c in rows if _has_conversion(visits_by_case.get(c["id"], []))]
     with_followup = [c for c in rows if visits_by_case.get(c["id"])]
 
+    # 抹片：陰陽與價數。價數只有陽性個案才有，所以分母是「有做抹片的人」。
+    afs_pos = [c for c in rows if str(c.get(KEY["afs"]) or "") == "陽性"]
+    afs_tested = [c for c in rows
+                  if str(c.get(KEY["afs"]) or "") in ("陰性", "陽性")]
+
     kpi = {
         "total": n,
+        "afs_pos": len(afs_pos),
+        "afs_tested": len(afs_tested),
+        "afs_pos_rate": (round(len(afs_pos) / len(afs_tested) * 100, 1)
+                         if afs_tested else None),
         "treat_group": len(treat_group),
         "observe_group": len(observe_group),
         "with_followup": len(with_followup),
@@ -599,6 +609,44 @@ def dashboard(year_from=None, year_to=None, species=None, group=None):
     visit_timeline += [{"key": k, "count": c} for k, c in ev_counts.items()
                        if k not in order]
 
+    # ---- 抹片價數：收案時與各追蹤時間點 ----
+    titer_values = ORDERED_VALUES.get(KEY["afs_titer"], [])
+
+    def titer_row(label, values):
+        row = {"key": label, "total": 0}
+        for v in values:
+            v = str(v or "").strip()
+            if not v:
+                continue
+            row[v] = row.get(v, 0) + 1
+            row["total"] += 1
+        return row
+
+    afs_timeline = []
+    base = titer_row("收案時", [c.get(KEY["afs_titer"]) for c in rows])
+    if base["total"]:
+        afs_timeline.append(base)
+    for label in [lb for _, lb in VISIT_EVENTS]:
+        vals = []
+        for vs in visits_by_case.values():
+            for v in vs:
+                if (v.get("event") or "（未指定）") != label:
+                    continue
+                # 追蹤表用的是複選欄位，收案表是單選，兩種都收
+                vals += _as_list(v.get("afs_titer_tx")) or [v.get(KEY["afs_titer"])]
+        row = titer_row(label, vals)
+        if row["total"]:
+            afs_timeline.append(row)
+    # 實際出現過的價數，照 0 → 4+ 排；沒出現的不必佔一個圖例
+    afs_levels = [t for t in titer_values
+                  if any(r.get(t) for r in afs_timeline)]
+    afs_levels += sorted({k for r in afs_timeline for k in r
+                          if k not in ("key", "total") and k not in titer_values})
+    # 沒出現的價數補 0：表格與 CSV 留空格會讓人以為是漏填
+    for row in afs_timeline:
+        for lv in afs_levels:
+            row.setdefault(lv, 0)
+
     # ---- 共病盛行率 ----
     comorbid = []
     for f in FIELDS:
@@ -643,6 +691,8 @@ def dashboard(year_from=None, year_to=None, species=None, group=None):
         "trend": trend,
         "pyramid": pyramid,
         "visit_timeline": visit_timeline,
+        "afs_timeline": afs_timeline,
+        "afs_levels": afs_levels,
         "comorbid": comorbid,
         "by": {name: _count_field(rows, name) for name in STAT_FIELDS},
     }
@@ -665,21 +715,37 @@ def _as_list(value):
 def _count_field(rows, name):
     """複選欄位每個選項各計一次；單選就是一般計數。"""
     field = FIELD_MAP.get(name)
+    skip_blank = name in SKIP_BLANK_FIELDS
     counts = {}
     for r in rows:
         vals = _as_list(r.get(name)) if field and field["type"] == "multi" else \
                [r.get(name) or "（未填）"]
         for v in (vals or ["（未填）"]):
             v = v or "（未填）"
+            if skip_blank and v == "（未填）":
+                continue
             counts[v] = counts.get(v, 0) + 1
-    return [{"key": k, "count": c}
-            for k, c in sorted(counts.items(), key=lambda kv: (-kv[1], kv[0]))]
+    return [{"key": k, "count": c} for k, c in _sorted_counts(counts, name)]
+
+
+def _sorted_counts(counts, name):
+    """有序欄位（如抹片價數）照選項順序排，其餘照數量多寡排。"""
+    order = ORDERED_VALUES.get(name)
+    if order:
+        def rank(kv):
+            try:
+                return (0, order.index(kv[0]))
+            except ValueError:
+                return (1, kv[0])            # 不在清單上的值排到後面
+        return sorted(counts.items(), key=rank)
+    return sorted(counts.items(), key=lambda kv: (-kv[1], kv[0]))
 
 
 def _count_by_group(rows, name):
     """同一個欄位，治療組與觀察組各數一次，供兩組並排比較。"""
     field = FIELD_MAP.get(name)
     is_multi = bool(field and field["type"] == "multi")
+    skip_blank = name in SKIP_BLANK_FIELDS
     counts = {}
     for r in rows:
         g = r.get(KEY["group"])
@@ -688,11 +754,13 @@ def _count_by_group(rows, name):
         vals = _as_list(r.get(name)) if is_multi else [r.get(name) or "（未填）"]
         for v in (vals or ["（未填）"]):
             v = v or "（未填）"
+            if skip_blank and v == "（未填）":
+                continue
             slot = counts.setdefault(v, {g2: 0 for g2 in GROUPS})
             slot[g] += 1
-    out = [dict(key=k, **v) for k, v in counts.items()]
-    out.sort(key=lambda d: (-sum(d[g] for g in GROUPS), d["key"]))
-    return out
+    totals = {k: sum(v[g] for g in GROUPS) for k, v in counts.items()}
+    order = _sorted_counts(totals, name)
+    return [dict(key=k, **counts[k]) for k, _ in order]
 
 
 def _has_conversion(visits):

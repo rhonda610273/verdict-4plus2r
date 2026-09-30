@@ -494,7 +494,10 @@ legend { font-size: 16px; font-weight: 700; color: var(--blue);
 .rp-table th, .rp-table td { border: 1px solid #b9c2cd; padding: 4px 8px;
   text-align: left; }
 .rp-table th { background: var(--sky); color: var(--navy); font-weight: 700; }
-.rp-table th.num, .rp-table td.num { text-align: right; width: 90px; }
+/* 數字欄只留必要寬度，第一欄（項目名稱）才不會被擠成一個字一行 */
+.rp-table th.num, .rp-table td.num { text-align: right; width: 1%;
+  min-width: 54px; white-space: nowrap; }
+.rp-table th:first-child, .rp-table td:first-child { min-width: 96px; }
 .rp-table tbody tr:nth-child(even) td { background: #f7f9fc; }
 
 @media print {

@@ -31,7 +31,9 @@ KEY = {
     "age": "age",
     "pattern": "ct_imagepattern",            # 影像型態
     "treated": "start_treatment",            # 收案時是否啟動治療
-    "first_positive": "ntm_positive_day",    # 首次培養陽性日
+    "first_positive": "ntm_positive_day",
+    "afs": "afs_initial",
+    "afs_titer": "afs_titer_initial",    # 首次培養陽性日
 }
 
 # 只保留本院個案 —— 其他醫院的資料不進本平台
@@ -150,5 +152,17 @@ SEARCH_COLUMNS = [c for c in (KEY["id"], KEY["species"], "ntm_species_other")
 
 # 儀表板要分組計數的欄位
 STAT_FIELDS = [c for c in (KEY["species"], KEY["group"], KEY["sex"],
-                           KEY["pattern"], "smoke")
+                           KEY["pattern"], "smoke",
+                           KEY["afs"], KEY["afs_titer"])
                if c in FIELD_MAP]
+
+# 有序欄位：抹片價數是有序變項，要照 0 → 4+ 排，不能照數量多寡排，
+# 否則「價數愈高菌量愈多」這件事在圖上就看不出來了。
+# 沒列在這裡的值排在後面，資料有髒東西也不會整個亂掉。
+ORDERED_VALUES = {
+    KEY["afs_titer"]: ["0", "trace", "1+", "2+", "3+", "4+"],
+}
+
+# 空值沒有意義的欄位：只有抹片陽性的個案才會有價數，
+# 把「未填」一起畫進去會讓長條圖被一根巨大的未填吃掉。
+SKIP_BLANK_FIELDS = {KEY["afs_titer"]}

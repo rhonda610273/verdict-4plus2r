@@ -882,6 +882,8 @@ function paintDashboard(d) {
                            { key: 'count', label: '紀錄數', numeric: true }],
                     d.visit_timeline), true);
 
+  drawAfsTimeline(d);
+
   if (compare) {
     const cg = toRows(d.comorbid_group || []);
     drawCard('共病（' + groups.join(' vs ') + '）', groupNote(d, cg.length),
@@ -899,6 +901,37 @@ function paintDashboard(d) {
   }
 
   wrap.style.opacity = '';
+}
+
+/** 抹片價數的色階：照價數高低給同色系由淺到深，陰性(0) 用灰色。 */
+function afsSegs(levels) {
+  const ramp = (typeof VIZ !== 'undefined' && VIZ.ramp) || [];
+  return levels.map((lv, i) => ({
+    key: lv,
+    name: lv === '0' ? '0（陰性）' : lv,
+    color: ramp[Math.min(i, ramp.length - 1)] || '#2a78d6',
+  }));
+}
+
+/** 收案時與各追蹤時間點的抹片價數分布。
+ *  看的是「同一個時間點裡各價數占多少」，所以用堆疊比例而不是長度。 */
+function drawAfsTimeline(d) {
+  const rows = d.afs_timeline || [];
+  const levels = d.afs_levels || [];
+  if (!rows.length || !levels.length) return;
+  const segs = afsSegs(levels);
+
+  drawCard('抹片價數分布（收案時與各追蹤時間點）',
+    '每個時間點各一筆紀錄，尾端 n 為該時間點有價數紀錄的筆數',
+    (host) => stackedBars(host, rows, segs,
+      { title: '抹片價數分布', labelWidth: 170,
+        emptyText: '尚無抹片價數紀錄' }),
+    (host) => table(host,
+      [{ key: 'key', label: '時間點' }]
+        .concat(segs.map((sg) => ({ key: sg.key, label: sg.name, numeric: true })))
+        .concat([{ key: 'total', label: '合計', numeric: true }]),
+      rows),
+    true);
 }
 
 function renderKpi(k, d) {
@@ -925,6 +958,9 @@ function renderKpi(k, d) {
   card('', k.with_followup, '已有追蹤紀錄',
     k.total ? `占 ${pct(k.with_followup, k.total)}%` : '');
   card('', k.visits_total, '追蹤紀錄總筆數', '');
+  card('', k.afs_pos, '抹片陽性',
+    k.afs_tested ? `${k.afs_pos} / ${k.afs_tested} 有做抹片（${k.afs_pos_rate}%）`
+                 : '尚無抹片結果');
   card('', k.converted, '曾經培養轉陰', '任一次追蹤痰培養陰性');
   card('', k.conversion_rate == null ? '—' : k.conversion_rate + '%', '治療組轉陰率',
     k.treat_group ? `${k.converted} / ${k.treat_group}` : '尚無治療組個案');
@@ -1251,6 +1287,7 @@ const REPORT_SECTIONS = [
   { id: 'trend', name: '收案趨勢', build: reportTrend },
   { id: 'dist', name: '各項分布', build: reportDist },
   { id: 'comorbid', name: '共病', build: reportComorbid },
+  { id: 'afs', name: '抹片價數分布', build: reportAfs },
   { id: 'age', name: '年齡與性別分布', build: reportAge },
   { id: 'visits', name: '各追蹤時間點紀錄數', build: reportVisits },
 ];
@@ -1344,6 +1381,22 @@ function reportComorbid(d) {
     rows,
     chart: (host) => hbar(host, rows, { labelWidth: 200 }),
   }] : [];
+}
+
+/** 抹片價數：收案時與各追蹤時間點，一樣圖表與表格共用同一份資料。 */
+function reportAfs(d) {
+  const rows = d.afs_timeline || [];
+  const levels = d.afs_levels || [];
+  if (!rows.length || !levels.length) return [];
+  const segs = afsSegs(levels);
+  return [{
+    title: '各時間點的價數組成',
+    cols: [{ key: 'key', label: '時間點' }]
+      .concat(segs.map((sg) => ({ key: sg.key, label: sg.name, numeric: true })))
+      .concat([{ key: 'total', label: '合計', numeric: true }]),
+    rows,
+    chart: (host) => stackedBars(host, rows, segs, { labelWidth: 160 }),
+  }];
 }
 
 function reportAge(d) {
